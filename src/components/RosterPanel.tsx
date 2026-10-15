@@ -11,8 +11,19 @@ import { countOf } from './text'
 const SAVE_FAILED =
   "Couldn't save: browser storage is blocked or full, so changes will be lost when you close the page"
 
-/** Lists, creates and edits saved rosters. Rosters are saved as soon as they change. */
-export function RosterPanel({ onClose }: { onClose: () => void }) {
+/**
+ * Lists, creates and edits saved rosters. Rosters are saved as soon as they change. Hide the
+ * panel rather than unmounting it, so a half-filled form survives closing it.
+ */
+export function RosterPanel({
+  id,
+  hidden = false,
+  onClose,
+}: {
+  id?: string
+  hidden?: boolean
+  onClose: () => void
+}) {
   const headingId = useId()
   const [loaded] = useState(() => loadRosters(getLocalStorage()))
   const [rosters, setRosters] = useState(loaded.rosters)
@@ -42,7 +53,9 @@ export function RosterPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <aside
+      id={id}
       className="roster-panel"
+      hidden={hidden}
       aria-labelledby={headingId}
       onKeyDown={(event) => {
         if (event.key === 'Escape') onClose()

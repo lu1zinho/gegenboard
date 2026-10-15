@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import './App.css'
 import { createDefaultBoard } from './board/defaultBoard'
 import { Pitch } from './components/Pitch'
@@ -8,6 +8,7 @@ export default function App() {
   const [board] = useState(createDefaultBoard)
   const [showRosters, setShowRosters] = useState(false)
   const rostersButton = useRef<HTMLButtonElement>(null)
+  const rostersPanelId = useId()
 
   return (
     <main className="app">
@@ -20,20 +21,21 @@ export default function App() {
         type="button"
         className="panel-toggle"
         aria-expanded={showRosters}
+        aria-controls={rostersPanelId}
         onClick={() => {
           setShowRosters((shown) => !shown)
         }}
       >
         Rosters
       </button>
-      {showRosters && (
-        <RosterPanel
-          onClose={() => {
-            setShowRosters(false)
-            rostersButton.current?.focus()
-          }}
-        />
-      )}
+      <RosterPanel
+        id={rostersPanelId}
+        hidden={!showRosters}
+        onClose={() => {
+          setShowRosters(false)
+          rostersButton.current?.focus()
+        }}
+      />
     </main>
   )
 }

@@ -41,4 +41,18 @@ describe('App', () => {
     expect(screen.queryByRole('complementary', { name: 'Rosters' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rosters' })).toHaveFocus()
   })
+
+  it('keeps what was typed in the rosters panel while it is closed', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const toggle = screen.getByRole('button', { name: 'Rosters' })
+
+    await user.click(toggle)
+    await user.type(screen.getByRole('textbox', { name: 'Team name' }), 'Gegenpress FC')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('complementary', { name: 'Rosters' })).not.toBeInTheDocument()
+
+    await user.click(toggle)
+    expect(screen.getByRole('textbox', { name: 'Team name' })).toHaveValue('Gegenpress FC')
+  })
 })

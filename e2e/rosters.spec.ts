@@ -35,7 +35,10 @@ test('creates a roster by pasting a 25-player squad and keeps it after a reload'
   page,
 }) => {
   await page.goto('/')
+  const panel = page.getByRole('complementary', { name: 'Rosters' })
+  await expect(panel).toBeHidden()
   await page.getByRole('button', { name: 'Rosters' }).click()
+  await expect(panel).toBeVisible()
 
   const form = page.getByRole('form', { name: 'New roster' })
   await form.getByRole('textbox', { name: 'Team name' }).fill('Gegenpress FC')
@@ -83,4 +86,7 @@ test('creates a roster by pasting a 25-player squad and keeps it after a reload'
   await expect(players.getByRole('spinbutton')).toHaveCount(25)
   await expect(players.getByRole('textbox', { name: 'Player 25 name' })).toHaveValue('Ó Briain')
   await expect(page.getByRole('button', { name: 'Save roster' })).toBeInViewport()
+
+  await page.getByRole('button', { name: 'Close' }).click()
+  await expect(panel).toBeHidden()
 })
