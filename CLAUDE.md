@@ -49,7 +49,13 @@ src/
     pitch.ts           pitch dimensions and position helpers
     defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
     validate.ts        validateBoard(): invariants the types can't express
-  components/          React components (Pitch renders a Board as SVG)
+  roster/              team rosters: pure TypeScript, no React
+    types.ts           Roster, RosterPlayer, SquadEntry
+    squadList.ts       parseSquadList(): pasted "10 Name" lines to players and line errors
+    roster.ts          create, edit and validate rosters (validateRoster)
+    storage.ts         save and load rosters in localStorage
+  components/          React components (Pitch renders a Board as SVG; RosterPanel manages
+                       rosters)
   test/                Vitest setup and shared test helpers
 e2e/                   Playwright specs (*.spec.ts)
 ```
@@ -70,6 +76,22 @@ e2e/                   Playwright specs (*.spec.ts)
   in step with any model change.
 - Model code is pure functions over plain data. Treat boards as immutable in app code and
   return new objects rather than mutating (tests may mutate fresh boards to set up cases).
+
+## Rosters
+
+- A roster is a saved squad (`Roster` in `src/roster/types.ts`): a team name, colours and any
+  number of players with a shirt number (1–99, unique) and a name, but no positions. Rosters
+  aren't wired into the board yet; picking a board team from a roster is a later step.
+- Rosters follow the board's rules: plain JSON-serialisable data, pure functions returning new
+  objects, and `validateRoster` kept in step with any model change.
+- `parseSquadList` never throws: unreadable lines and repeated shirt numbers come back as
+  `errors` with a line number and reason, and the readable lines are still used.
+- Rosters are stored in localStorage under `gegenboard.rosters` as `{ version, rosters }`,
+  apart from anything else the app saves. Bump `ROSTERS_SCHEMA_VERSION` on breaking changes
+  and migrate older data in `deserialiseRosters`. Go through `loadRosters`/`saveRosters`/
+  `getLocalStorage`, which wrap every storage access in try/catch and never throw, rather than
+  using `localStorage` directly in app code. Unit tests get a cleared `localStorage` after
+  each test.
 
 ## Conventions
 
