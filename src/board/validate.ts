@@ -5,6 +5,11 @@ export const PLAYERS_PER_TEAM = 11
 
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 
+/** Whether a colour is written as `#rrggbb`, the only form the model uses. */
+export function isHexColour(colour: string): boolean {
+  return HEX_COLOUR.test(colour)
+}
+
 /**
  * Checks the rules a board must follow beyond what its types express. Returns a description
  * of each problem found, or an empty array for a valid board.
@@ -16,7 +21,7 @@ export function validateBoard(board: Board): string[] {
     if (!isOnPitch(position)) problems.push(`${label} is off the pitch`)
   }
   const checkColour = (label: string, colour: string) => {
-    if (!HEX_COLOUR.test(colour)) problems.push(`${label} must be a #rrggbb colour`)
+    if (!isHexColour(colour)) problems.push(`${label} must be a #rrggbb colour`)
   }
 
   const playerIds = new Set<string>()

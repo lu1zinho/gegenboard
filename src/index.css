@@ -26,6 +26,12 @@ body,
   height: 100%;
 }
 
+button,
+input,
+textarea {
+  font: inherit;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
