@@ -43,10 +43,33 @@ Before pushing, run what CI runs:
 
 ```
 src/
-  main.tsx, App.tsx    entry point and top-level component
-  test/setup.ts        Vitest setup (jest-dom matchers, RTL cleanup)
+  main.tsx, App.tsx    entry point; App shows the board in a 16:9 stage
+  board/               the board data model: pure TypeScript, no React
+    types.ts           Board, Team, Player, Ball, Arrow, PitchPosition
+    pitch.ts           pitch dimensions and position helpers
+    defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
+    validate.ts        validateBoard(): invariants the types can't express
+  components/          React components (Pitch renders a Board as SVG)
+  test/                Vitest setup and shared test helpers
 e2e/                   Playwright specs (*.spec.ts)
 ```
+
+## Board model
+
+- The whole board (both teams, ball, arrows) is **one plain JSON-serialisable object**
+  (`Board` in `src/board/types.ts`). No classes, `Date`s, functions or `undefined` values;
+  `JSON.parse(JSON.stringify(board))` must equal the original. Bump `version` on breaking
+  changes.
+- Positions are **percentages of the pitch**, never pixels or metres: `x` 0–100 from the left
+  goal line to the right, `y` 0–100 from the top touchline to the bottom. Convert only when
+  rendering (`toPitchPoint` gives metres, which the SVG uses as user units).
+- `home` defends the left goal and attacks right; `away` is the reverse. Write formations for
+  a team attacking right and use `mirrorPosition` for the away side.
+- Teams have exactly 11 players; shirt numbers are 1–99 and unique within a team; ids are
+  unique across the board; colours are `#rrggbb`. `validateBoard` checks all of this. Keep it
+  in step with any model change.
+- Model code is pure functions over plain data. Treat boards as immutable in app code and
+  return new objects rather than mutating (tests may mutate fresh boards to set up cases).
 
 ## Conventions
 
