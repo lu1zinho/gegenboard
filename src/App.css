@@ -1,4 +1,5 @@
 .app {
+  position: relative;
   display: grid;
   place-items: center;
   height: 100%;
@@ -10,4 +11,18 @@
   width: min(100vw, calc(100vh * 16 / 9));
   aspect-ratio: 16 / 9;
   background: var(--grass);
+}
+
+/* Kept small and faint in the corner so it barely shows on stream. */
+.panel-toggle {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  opacity: 0.6;
+}
+
+.panel-toggle:hover,
+.panel-toggle:focus-visible,
+.panel-toggle[aria-expanded='true'] {
+  opacity: 1;
 }
