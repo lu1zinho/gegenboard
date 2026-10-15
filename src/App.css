@@ -1,0 +1,13 @@
+.app {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The largest 16:9 frame that fits the window, matching the stream output. */
+.stage {
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  background: var(--grass);
+}
