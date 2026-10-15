@@ -146,6 +146,54 @@ describe('RosterPanel', () => {
     ])
   })
 
+  it('edits a saved roster and saves the changes', async () => {
+    saveRosters(getLocalStorage(), [makeRoster()])
+    const { user } = renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))
+    const editor = screen.getByRole('form', { name: 'Edit Gegenpress FC' })
+    expect(screen.queryByRole('form', { name: 'New roster' })).not.toBeInTheDocument()
+    const teamName = within(editor).getByRole('textbox', { name: 'Team name' })
+    await user.clear(teamName)
+    await user.type(teamName, 'Gegenpress City')
+    await user.click(within(editor).getByRole('button', { name: 'Remove player 1' }))
+    await user.click(within(editor).getByRole('button', { name: 'Save roster' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Saved Gegenpress City')
+    expect(screen.getByRole('list', { name: 'Saved rosters' })).toHaveTextContent(
+      'Gegenpress City2 players',
+    )
+    expect(savedRosters()).toEqual([
+      makeRoster({ name: 'Gegenpress City', players: makeRoster().players.slice(1) }),
+    ])
+  })
+
+  it('goes back to the list without saving when editing is cancelled', async () => {
+    saveRosters(getLocalStorage(), [makeRoster()])
+    const { user } = renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))
+    await user.type(screen.getByRole('textbox', { name: 'Team name' }), ' Reserves')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByRole('form', { name: 'New roster' })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Saved rosters' })).toHaveTextContent('Gegenpress FC3')
+    expect(savedRosters()).toEqual([makeRoster()])
+  })
+
+  it('deletes a roster', async () => {
+    saveRosters(getLocalStorage(), [makeRoster(), makeRoster({ id: 'roster-2', name: 'Rondo' })])
+    const { user } = renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))
+    await user.click(screen.getByRole('button', { name: 'Delete roster' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Deleted Gegenpress FC')
+    expect(screen.getByRole('list', { name: 'Saved rosters' })).not.toHaveTextContent('Gegenpress')
+    expect(savedRosters().map((r) => r.name)).toEqual(['Rondo'])
+  })
+
   it('says when saved rosters could not be loaded', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('Access denied', 'SecurityError')
