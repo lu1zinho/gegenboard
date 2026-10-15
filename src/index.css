@@ -8,6 +8,9 @@
     sans-serif;
   background: #111;
   color: #f5f5f5;
+
+  --grass: #2e7d32;
+  --grass-stripe: #388e3c;
 }
 
 *,
