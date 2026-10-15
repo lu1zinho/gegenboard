@@ -14,8 +14,10 @@ export interface PitchPosition {
   y: number
 }
 
+export const TEAM_SIDES = ['home', 'away'] as const
+
 /** `home` defends the left goal (attacks left to right), `away` defends the right goal. */
-export type TeamSide = 'home' | 'away'
+export type TeamSide = (typeof TEAM_SIDES)[number]
 
 export interface TeamColours {
   /** Shirt colour, as `#rrggbb`. */
