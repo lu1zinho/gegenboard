@@ -79,5 +79,8 @@ test('keeps a changed board after a reload, and undoes and redoes the change', a
   await page.reload()
   await expect(striker).toHaveAttribute('transform', 'translate(84 34)')
   await expect(gegenpress.getByRole('listitem')).toHaveCount(11)
-  await expect(page.getByRole('img', { name: 'Ball' })).toHaveAttribute('cx', '84')
+  await expect(page.getByRole('img', { name: 'Ball' })).toHaveAttribute(
+    'transform',
+    'translate(84 30.6)',
+  )
 })

@@ -48,7 +48,8 @@ src/
   storage.ts           getLocalStorage() and helpers shared by everything kept in storage
   board/               the board data model: pure TypeScript, no React
     types.ts           Board, Team, Player, Ball, Arrow, PitchPosition
-    pitch.ts           pitch dimensions and position helpers
+    pitch.ts           pitch dimensions, position helpers, clampPosition, fromScreenPoint
+    moveToken.ts       moveToken(): move a player or the ball, clamped to the pitch
     defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
     validate.ts        validateBoard(): invariants the types can't express
     formations.ts      formation presets: applyFormation(), formationOf()
@@ -147,6 +148,17 @@ e2e/                   Playwright specs (*.spec.ts)
   while typing in a field.
 - `?bg=transparent` sets `data-bg="transparent"` on `<html>` so OBS shows what is behind the
   page.
+
+## Tokens and dragging
+
+- Player tokens are 5 m discs (radius 2.5 in SVG units) with the shirt number inside and the
+  surname below in white with a dark outline; the ball is a white football with a yellow halo.
+  Keep them large: they must read on a phone watching the stream.
+- `Pitch` takes `onMoveToken(token, position, gesture)` and handles pointer events itself
+  (pointer capture, so a drag continues outside the pitch). `position` is in percent and not
+  clamped; `App` passes it to `moveToken` through `board.change` with `group: gesture`, so a
+  drag is one undo step, autosaved. `moveToken` clamps to 0–100.
+- Tokens are positioned only by their own `transform`, so dragging one never moves another.
 
 ## Conventions
 
