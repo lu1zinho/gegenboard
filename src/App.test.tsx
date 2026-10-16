@@ -1,15 +1,49 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { createDefaultBoard } from './board/defaultBoard'
-import { BOARD_STORAGE_KEY, autosaveBoard } from './board/storage'
+import type { SavedBoard } from './board/savedBoards'
+import {
+  BOARD_STORAGE_KEY,
+  autosaveBoard,
+  loadAutosavedBoard,
+  storeSavedBoards,
+} from './board/storage'
+import type { Board } from './board/types'
 import { getLocalStorage } from './storage'
 import { getPlayer } from './test/board'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
+
+/** The default board with the home number 9 moved to `x`, so boards can be told apart. */
+function boardWithStrikerAt(x: number): Board {
+  const board = createDefaultBoard()
+  getPlayer(board, 'home', 9).position = { x, y: 50 }
+  return board
+}
+
+const HIGH_PRESS: SavedBoard = { id: 'board-1', name: 'High press', board: boardWithStrikerAt(80) }
+const LOW_BLOCK: SavedBoard = { id: 'board-2', name: 'Low block', board: boardWithStrikerAt(30) }
+
+// Where the home number 9 is drawn for each board above and for kick-off.
+const AT_KICK_OFF = 'translate(48.3 34)'
+const HIGH = 'translate(84 34)'
+const LOW = 'translate(31.5 34)'
+
+/** Renders the app with the saved boards listed and the Boards panel open. */
+async function renderWithSavedBoards() {
+  storeSavedBoards(getLocalStorage(), [HIGH_PRESS, LOW_BLOCK])
+  const user = userEvent.setup()
+  const view = render(<App />)
+  await user.click(screen.getByRole('button', { name: 'Boards' }))
+  const load = async (saved: SavedBoard) => {
+    await user.click(screen.getByRole('button', { name: `Load ${saved.name}` }))
+  }
+  return { user, load, view }
+}
 
 /** Where the home number 9 is drawn, in metres from the top-left corner of the pitch. */
 function strikerTransform() {
@@ -84,14 +118,14 @@ describe('App board', () => {
 
   it('starts at kick-off, without saving anything, when no board was saved', () => {
     render(<App />)
-    expect(strikerTransform()).toBe('translate(48.3 34)')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
     expect(localStorage).toHaveLength(0)
   })
 
   it('starts at kick-off when the saved board is damaged', () => {
     localStorage.setItem(BOARD_STORAGE_KEY, '{"version":1,"teams":')
     render(<App />)
-    expect(strikerTransform()).toBe('translate(48.3 34)')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
   })
 
   it('works where browser storage is blocked', () => {
@@ -99,6 +133,127 @@ describe('App board', () => {
       throw new DOMException('Access denied', 'SecurityError')
     })
     render(<App />)
-    expect(strikerTransform()).toBe('translate(48.3 34)')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+  })
+})
+
+describe('App panels', () => {
+  it('opens and closes the boards panel', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const toggle = screen.getByRole('button', { name: 'Boards' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
+
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('complementary', { name: 'Boards' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
+    expect(toggle).toHaveFocus()
+  })
+
+  it('opens one panel at a time', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Rosters' }))
+    await user.click(screen.getByRole('button', { name: 'Boards' }))
+    expect(screen.getByRole('complementary', { name: 'Boards' })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Rosters' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Rosters' }))
+    expect(screen.getByRole('complementary', { name: 'Rosters' })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
+  })
+})
+
+describe('App saved boards and undo', () => {
+  it('loads a saved board onto the pitch', async () => {
+    const { load } = await renderWithSavedBoards()
+    await load(HIGH_PRESS)
+    expect(strikerTransform()).toBe(HIGH)
+  })
+
+  it('saves the board on screen under a name', async () => {
+    const { user, load } = await renderWithSavedBoards()
+    await load(LOW_BLOCK)
+
+    const form = screen.getByRole('form', { name: 'Save board' })
+    await user.type(within(form).getByRole('textbox', { name: 'Board name' }), 'Deep{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Load High press' }))
+    await user.click(screen.getByRole('button', { name: 'Load Deep' }))
+
+    expect(strikerTransform()).toBe(LOW)
+  })
+
+  it('undoes on Ctrl+Z and redoes on Ctrl+Shift+Z and Ctrl+Y', async () => {
+    const { user, load } = await renderWithSavedBoards()
+    await load(HIGH_PRESS)
+    await load(LOW_BLOCK)
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(HIGH)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+
+    await user.keyboard('{Control>}{Shift>}Z{/Shift}{/Control}')
+    expect(strikerTransform()).toBe(HIGH)
+    await user.keyboard('{Control>}y{/Control}')
+    expect(strikerTransform()).toBe(LOW)
+    await user.keyboard('{Control>}y{/Control}')
+    expect(strikerTransform()).toBe(LOW)
+  })
+
+  it('can no longer redo after a new change', async () => {
+    const { user, load } = await renderWithSavedBoards()
+    await load(HIGH_PRESS)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+
+    await load(LOW_BLOCK)
+    await user.keyboard('{Control>}y{/Control}')
+    expect(strikerTransform()).toBe(LOW)
+
+    // The undone load of High press is gone: undo goes straight back to kick-off.
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+  })
+
+  it('leaves Ctrl+Z to a text field while typing in it', async () => {
+    const { user, load } = await renderWithSavedBoards()
+    await load(HIGH_PRESS)
+
+    const name = screen.getByRole('textbox', { name: 'Board name' })
+    await user.type(name, 'Press')
+    await user.keyboard('{Control>}z{/Control}')
+
+    expect(strikerTransform()).toBe(HIGH)
+  })
+
+  it('autosaves every change, including undo and redo', async () => {
+    const { user, load } = await renderWithSavedBoards()
+    const autosaved = () => loadAutosavedBoard(getLocalStorage())
+
+    await load(HIGH_PRESS)
+    expect(autosaved()).toEqual(HIGH_PRESS.board)
+    await user.keyboard('{Control>}z{/Control}')
+    expect(autosaved()).toEqual(createDefaultBoard())
+    await user.keyboard('{Control>}y{/Control}')
+    expect(autosaved()).toEqual(HIGH_PRESS.board)
+  })
+
+  it('restores the changed board when the page is opened again', async () => {
+    const { load, view } = await renderWithSavedBoards()
+    await load(LOW_BLOCK)
+    view.unmount()
+
+    render(<App />)
+    expect(strikerTransform()).toBe(LOW)
   })
 })

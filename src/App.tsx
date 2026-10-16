@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import './App.css'
 import { createDefaultBoard } from './board/defaultBoard'
 import { autosaveBoard, loadAutosavedBoard } from './board/storage'
 import type { Board } from './board/types'
+import { BoardsPanel } from './components/BoardsPanel'
 import { Pitch } from './components/Pitch'
 import { RosterPanel } from './components/RosterPanel'
 import { useHistory } from './history/useHistory'
@@ -14,15 +15,29 @@ function initialBoard(): Board {
   return loadAutosavedBoard(getLocalStorage()) ?? createDefaultBoard()
 }
 
+type Panel = 'rosters' | 'boards'
+
 export default function App() {
   // Every change to the board goes through board.change, so all of them can be undone.
   const board = useHistory(initialBoard)
   useHistoryShortcuts(board)
   useAutosave(board.present)
 
-  const [showRosters, setShowRosters] = useState(false)
+  const [openPanel, setOpenPanel] = useState<Panel | null>(null)
   const rostersButton = useRef<HTMLButtonElement>(null)
+  const boardsButton = useRef<HTMLButtonElement>(null)
   const rostersPanelId = useId()
+  const boardsPanelId = useId()
+
+  // Both panels cover the right of the stage, so only one is open at a time.
+  function togglePanel(panel: Panel) {
+    setOpenPanel((open) => (open === panel ? null : panel))
+  }
+
+  function closePanel(toggle: RefObject<HTMLButtonElement | null>) {
+    setOpenPanel(null)
+    toggle.current?.focus()
+  }
 
   return (
     <main className="app">
@@ -30,24 +45,48 @@ export default function App() {
       <div className="stage">
         <Pitch board={board.present} />
       </div>
-      <button
-        ref={rostersButton}
-        type="button"
-        className="panel-toggle"
-        aria-expanded={showRosters}
-        aria-controls={rostersPanelId}
-        onClick={() => {
-          setShowRosters((shown) => !shown)
-        }}
-      >
-        Rosters
-      </button>
+      <div className="panel-toggles">
+        <button
+          ref={rostersButton}
+          type="button"
+          className="panel-toggle"
+          aria-expanded={openPanel === 'rosters'}
+          aria-controls={rostersPanelId}
+          onClick={() => {
+            togglePanel('rosters')
+          }}
+        >
+          Rosters
+        </button>
+        <button
+          ref={boardsButton}
+          type="button"
+          className="panel-toggle"
+          aria-expanded={openPanel === 'boards'}
+          aria-controls={boardsPanelId}
+          onClick={() => {
+            togglePanel('boards')
+          }}
+        >
+          Boards
+        </button>
+      </div>
       <RosterPanel
         id={rostersPanelId}
-        hidden={!showRosters}
+        hidden={openPanel !== 'rosters'}
         onClose={() => {
-          setShowRosters(false)
-          rostersButton.current?.focus()
+          closePanel(rostersButton)
+        }}
+      />
+      <BoardsPanel
+        id={boardsPanelId}
+        hidden={openPanel !== 'boards'}
+        board={board.present}
+        onLoad={(saved) => {
+          board.change(() => saved)
+        }}
+        onClose={() => {
+          closePanel(boardsButton)
         }}
       />
     </main>
