@@ -6,7 +6,7 @@ import './Bench.css'
 export function Bench({ team, side }: { team: Team; side: TeamSide }) {
   const label = SIDE_LABELS[side]
   return (
-    <aside className="bench" aria-label={`${label} bench`}>
+    <aside className="bench" data-side={side} aria-label={`${label} bench`}>
       <h2 className="bench-title" style={{ borderColor: team.colours.primary }}>
         {team.name}
       </h2>

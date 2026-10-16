@@ -4,10 +4,10 @@ import { createDefaultBoard } from './board/defaultBoard'
 import { applyFormation, formationOf } from './board/formations'
 import { autosaveBoard, loadAutosavedBoard } from './board/storage'
 import { moveToken } from './board/moveToken'
-import type { Board } from './board/types'
+import type { Board, TeamSide } from './board/types'
 import { Bench } from './components/Bench'
 import { BoardsPanel } from './components/BoardsPanel'
-import { FormationControls } from './components/FormationControls'
+import { FormationPicker } from './components/FormationPicker'
 import { Pitch } from './components/Pitch'
 import { RosterPanel } from './components/RosterPanel'
 import { useHistory } from './history/useHistory'
@@ -67,6 +67,18 @@ export default function App() {
     closePanel: openPanel && !presenting ? closePanel : undefined,
   })
 
+  function formationPicker(side: TeamSide) {
+    return (
+      <FormationPicker
+        side={side}
+        formation={formationOf(board.present, side)}
+        onChange={(formation) => {
+          board.change((current) => applyFormation(current, side, formation))
+        }}
+      />
+    )
+  }
+
   return (
     <main className="app">
       <h1 className="visually-hidden">Gegenboard</h1>
@@ -81,53 +93,47 @@ export default function App() {
           />
         </div>
         <Bench team={board.present.teams.away} side="away" />
-      </div>
-      <div className="controls" hidden={presenting}>
-        <FormationControls
-          formations={{
-            home: formationOf(board.present, 'home'),
-            away: formationOf(board.present, 'away'),
-          }}
-          onChange={(side, formation) => {
-            board.change((current) => applyFormation(current, side, formation))
-          }}
-        />
-        <div className="panel-toggles">
-          <button
-            ref={rostersButton}
-            type="button"
-            className="panel-toggle"
-            aria-expanded={openPanel === 'rosters'}
-            aria-controls={rostersPanelId}
-            onClick={() => {
-              togglePanel('rosters')
+        {/* Every control goes in here, so presentation mode hides them all. */}
+        <div className="controls" hidden={presenting}>
+          <div className="side-controls" data-side="home">
+            <button
+              ref={rostersButton}
+              type="button"
+              aria-expanded={openPanel === 'rosters'}
+              aria-controls={rostersPanelId}
+              onClick={() => {
+                togglePanel('rosters')
+              }}
+            >
+              Rosters
+            </button>
+            <button
+              ref={boardsButton}
+              type="button"
+              aria-expanded={openPanel === 'boards'}
+              aria-controls={boardsPanelId}
+              onClick={() => {
+                togglePanel('boards')
+              }}
+            >
+              Boards
+            </button>
+            {formationPicker('home')}
+          </div>
+          <div className="side-controls" data-side="away">
+            {formationPicker('away')}
+          </div>
+          <RosterPanel id={rostersPanelId} hidden={openPanel !== 'rosters'} onClose={closePanel} />
+          <BoardsPanel
+            id={boardsPanelId}
+            hidden={openPanel !== 'boards'}
+            board={board.present}
+            onLoad={(saved) => {
+              board.change(() => saved)
             }}
-          >
-            Rosters
-          </button>
-          <button
-            ref={boardsButton}
-            type="button"
-            className="panel-toggle"
-            aria-expanded={openPanel === 'boards'}
-            aria-controls={boardsPanelId}
-            onClick={() => {
-              togglePanel('boards')
-            }}
-          >
-            Boards
-          </button>
+            onClose={closePanel}
+          />
         </div>
-        <RosterPanel id={rostersPanelId} hidden={openPanel !== 'rosters'} onClose={closePanel} />
-        <BoardsPanel
-          id={boardsPanelId}
-          hidden={openPanel !== 'boards'}
-          board={board.present}
-          onLoad={(saved) => {
-            board.change(() => saved)
-          }}
-          onClose={closePanel}
-        />
       </div>
     </main>
   )
