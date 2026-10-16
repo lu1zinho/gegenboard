@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createDefaultBoard } from '../board/defaultBoard'
 import { getPlayer } from '../test/board'
 import { Pitch } from './Pitch'
@@ -45,8 +45,7 @@ describe('Pitch', () => {
       'translate(21 17)',
     )
     const ball = screen.getByRole('img', { name: 'Ball' })
-    expect(ball).toHaveAttribute('cx', '63')
-    expect(ball).toHaveAttribute('cy', '51')
+    expect(ball).toHaveAttribute('transform', 'translate(63 51)')
   })
 
   it('draws no arrows for an empty arrow list', () => {
@@ -91,5 +90,92 @@ describe('Pitch', () => {
 
     const run = within(arrows).getByRole('listitem', { name: 'Dashed arrow' })
     expect(run.querySelector('line')).toHaveAttribute('stroke-dasharray')
+  })
+})
+
+describe('Pitch dragging', () => {
+  beforeEach(() => {
+    // jsdom has no layout or pointer capture: pretend the pitch is 1050 x 680 px at (10, 20).
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(10, 20, 1050, 680),
+    )
+    Object.defineProperty(SVGElement.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+  })
+
+  function drag(element: Element, from: [number, number], to: [number, number][]) {
+    fireEvent.pointerDown(element, { pointerId: 1, button: 0, clientX: from[0], clientY: from[1] })
+    for (const [clientX, clientY] of to) {
+      fireEvent.pointerMove(element, { pointerId: 1, clientX, clientY })
+    }
+    fireEvent.pointerUp(element, { pointerId: 1 })
+  }
+
+  it('reports the dragged player with a position in percent, keeping the grab offset', () => {
+    const onMoveToken = vi.fn()
+    const board = createDefaultBoard()
+    const striker = getPlayer(board, 'home', 9)
+    render(<Pitch board={board} onMoveToken={onMoveToken} />)
+
+    // Grab 10 px right of the token centre, then drag to the middle of the pitch.
+    const centre = {
+      x: 10 + (striker.position.x / 100) * 1050,
+      y: 20 + (striker.position.y / 100) * 680,
+    }
+    drag(
+      screen.getByRole('listitem', { name: '9 Okafor' }),
+      [centre.x + 10, centre.y],
+      [[10 + 525 + 10, 20 + 340]],
+    )
+
+    expect(onMoveToken).toHaveBeenCalledTimes(1)
+    const [token, position] = onMoveToken.mock.calls[0] as [unknown, { x: number; y: number }]
+    expect(token).toEqual({ kind: 'player', side: 'home', id: striker.id })
+    expect(position.x).toBeCloseTo(50)
+    expect(position.y).toBeCloseTo(50)
+  })
+
+  it('uses one gesture id per drag and a new one for the next', () => {
+    const onMoveToken = vi.fn()
+    render(<Pitch board={createDefaultBoard()} onMoveToken={onMoveToken} />)
+    const ball = screen.getByRole('img', { name: 'Ball' })
+
+    drag(
+      ball,
+      [535, 360],
+      [
+        [600, 400],
+        [650, 450],
+      ],
+    )
+    drag(ball, [650, 450], [[700, 500]])
+
+    const gestures = onMoveToken.mock.calls.map((call: unknown[]) => call[2])
+    expect(gestures[0]).toBe(gestures[1])
+    expect(gestures[2]).not.toBe(gestures[0])
+  })
+
+  it('does not report moves after the pointer is released', () => {
+    const onMoveToken = vi.fn()
+    render(<Pitch board={createDefaultBoard()} onMoveToken={onMoveToken} />)
+    const ball = screen.getByRole('img', { name: 'Ball' })
+
+    drag(ball, [535, 360], [])
+    fireEvent.pointerMove(ball, { pointerId: 1, clientX: 600, clientY: 400 })
+
+    expect(onMoveToken).not.toHaveBeenCalled()
+  })
+
+  it('ignores non-primary buttons', () => {
+    const onMoveToken = vi.fn()
+    render(<Pitch board={createDefaultBoard()} onMoveToken={onMoveToken} />)
+    const ball = screen.getByRole('img', { name: 'Ball' })
+
+    fireEvent.pointerDown(ball, { pointerId: 1, button: 2, clientX: 535, clientY: 360 })
+    fireEvent.pointerMove(ball, { pointerId: 1, clientX: 600, clientY: 400 })
+
+    expect(onMoveToken).not.toHaveBeenCalled()
   })
 })

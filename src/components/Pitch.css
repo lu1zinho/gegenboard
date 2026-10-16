@@ -31,13 +31,48 @@
   stroke: none;
 }
 
+.pitch-token {
+  /* The drag is handled with pointer events; stop the browser scrolling or selecting. */
+  touch-action: none;
+}
+
+.pitch[data-draggable] .pitch-token {
+  cursor: grab;
+}
+
+.pitch[data-draggable] .pitch-token:active {
+  cursor: grabbing;
+}
+
+.pitch-player-disc {
+  /* Lifts the token off the grass whatever the team colours. */
+  filter: drop-shadow(0 0.25px 0.35px rgb(0 0 0 / 0.7));
+}
+
+.pitch-player-number {
+  /* A thin dark halo keeps the number readable on any shirt colour. */
+  stroke: rgb(0 0 0 / 0.55);
+  stroke-width: 0.25;
+  paint-order: stroke;
+}
+
 .pitch-player-name {
   fill: #fff;
-  stroke: rgb(0 0 0 / 0.65);
+  stroke: rgb(0 0 0 / 0.85);
+  stroke-linejoin: round;
   paint-order: stroke;
+}
+
+.pitch-ball-halo {
+  fill: rgb(255 214 0 / 0.55);
 }
 
 .pitch-ball {
   fill: #fff;
   stroke: #111;
+}
+
+.pitch-ball-patch {
+  fill: #111;
+  pointer-events: none;
 }
