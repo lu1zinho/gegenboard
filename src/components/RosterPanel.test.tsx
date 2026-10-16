@@ -218,15 +218,10 @@ describe('RosterPanel', () => {
     expect(screen.getByRole('list', { name: 'Saved rosters' })).toHaveTextContent('Gegenpress FC')
   })
 
-  it('closes from its button or with Escape', async () => {
+  it('closes from its button', async () => {
     const onClose = vi.fn()
-    const { user, teamName } = renderPanel(onClose)
-
+    const { user } = renderPanel(onClose)
     await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
-
-    await user.click(teamName)
-    await user.keyboard('{Escape}')
-    expect(onClose).toHaveBeenCalledTimes(2)
   })
 })

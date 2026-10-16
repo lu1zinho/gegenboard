@@ -213,6 +213,47 @@ describe('App panels', () => {
     expect(screen.getByRole('complementary', { name: 'Rosters' })).toBeInTheDocument()
     expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
   })
+
+  it('closes the open panel on Escape wherever the focus is', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const toggle = screen.getByRole('button', { name: 'Boards' })
+
+    await user.click(toggle)
+    await user.click(screen.getByRole('textbox', { name: 'Board name' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
+    expect(toggle).toHaveFocus()
+
+    await user.click(toggle)
+    await user.click(screen.getByRole('group', { name: 'Tactics board' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('complementary', { name: 'Boards' })).not.toBeInTheDocument()
+  })
+
+  it('cancels a rename on Escape and leaves the boards panel open', async () => {
+    storeSavedBoards(getLocalStorage(), [HIGH_PRESS])
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Boards' }))
+    await user.click(screen.getByRole('button', { name: 'Rename High press' }))
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('form', { name: 'Rename High press' })).not.toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: 'Boards' })).toBeInTheDocument()
+  })
+
+  it('leaves a panel open on Escape while presenting, for when the controls return', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Rosters' }))
+    await user.click(screen.getByRole('group', { name: 'Tactics board' }))
+    await user.keyboard('p{Escape}p')
+
+    expect(screen.getByRole('complementary', { name: 'Rosters' })).toBeVisible()
+  })
 })
 
 describe('App saved boards and undo', () => {

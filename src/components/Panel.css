@@ -1,0 +1,40 @@
+/* Sits over the right of the stage, so the board keeps its exact 16:9 size underneath. */
+.panel {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(34rem, 100%);
+  overflow-y: auto;
+  /* No bottom padding: sticky footers must reach the bottom edge. */
+  padding: 1rem 1.5rem 0;
+  background: #111;
+  border-left: 1px solid #333;
+  box-shadow: -0.5rem 0 2rem rgb(0 0 0 / 0.5);
+}
+
+.panel h2,
+.panel h3 {
+  margin: 0;
+}
+
+.panel h3 {
+  font-size: 1.1rem;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-status {
+  min-height: 1.5em;
+  color: #a5d6a7;
+}
+
+.panel-empty {
+  color: #aaa;
+}
+
+.danger {
+  color: #ef9a9a;
+}

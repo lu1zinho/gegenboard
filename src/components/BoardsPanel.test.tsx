@@ -146,15 +146,22 @@ describe('BoardsPanel', () => {
     expect(savedBoards()).toEqual([KICK_OFF, HIGH_PRESS])
   })
 
-  it('cancels renaming on Escape without closing the panel', async () => {
+  it('cancels renaming on Escape, keeping the key from closing the panel', async () => {
     storeSavedBoards(getLocalStorage(), [KICK_OFF])
-    const { user, onClose } = renderPanel()
+    const { user } = renderPanel()
+    const escapes: KeyboardEvent[] = []
+    const recordEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') escapes.push(event)
+    }
+    window.addEventListener('keydown', recordEscape)
 
     await user.click(screen.getByRole('button', { name: 'Rename Kick-off' }))
     await user.type(screen.getByRole('textbox', { name: 'New name' }), ' 2{Escape}')
+    window.removeEventListener('keydown', recordEscape)
 
     expect(screen.queryByRole('form', { name: 'Rename Kick-off' })).not.toBeInTheDocument()
-    expect(onClose).not.toHaveBeenCalled()
+    // Marked as handled, so the app's Escape shortcut leaves the panel open.
+    expect(escapes.map((event) => event.defaultPrevented)).toEqual([true])
     expect(listedNames()).toEqual(['Kick-off'])
     expect(screen.getByRole('button', { name: 'Rename Kick-off' })).toHaveFocus()
   })
@@ -225,12 +232,9 @@ describe('BoardsPanel', () => {
     )
   })
 
-  it('closes on the Close button and on Escape', async () => {
-    const { user, onClose, name } = renderPanel()
-
+  it('closes on the Close button', async () => {
+    const { user, onClose } = renderPanel()
     await user.click(screen.getByRole('button', { name: 'Close' }))
-    await user.type(name, '{Escape}')
-
-    expect(onClose).toHaveBeenCalledTimes(2)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
