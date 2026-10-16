@@ -10,7 +10,25 @@
 .stage {
   width: min(100vw, calc(100vh * 16 / 9));
   aspect-ratio: 16 / 9;
-  background: var(--grass);
+  /* Lets the benches size their text from the frame. */
+  container-type: size;
+  /* Benches take the width the pitch leaves; the pitch fills the frame's full height. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.stage-pitch {
+  height: 100%;
+  aspect-ratio: 105 / 68;
+}
+
+.controls {
+  /* Only groups the controls so they can be hidden together; takes no space of its own. */
+  display: contents;
+}
+
+.controls[hidden] {
+  display: none;
 }
 
 /* Kept small and faint in the corner so it barely shows on stream. */
