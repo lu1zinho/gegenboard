@@ -34,3 +34,27 @@ export function isOnPitch(position: PitchPosition): boolean {
 function isPercentage(value: number): boolean {
   return Number.isFinite(value) && value >= 0 && value <= 100
 }
+
+/** Limits a position to the pitch. Non-finite coordinates fall back to the centre line. */
+export function clampPosition(position: PitchPosition): PitchPosition {
+  return { x: clampPercentage(position.x), y: clampPercentage(position.y) }
+}
+
+function clampPercentage(value: number): number {
+  if (!Number.isFinite(value)) return 50
+  return Math.min(100, Math.max(0, value))
+}
+
+/**
+ * Converts a point in a rendered pitch to a (not yet clamped) percentage position, given the
+ * pitch's on-screen rectangle.
+ */
+export function fromScreenPoint(
+  point: Point,
+  rect: { left: number; top: number; width: number; height: number },
+): PitchPosition {
+  return {
+    x: ((point.x - rect.left) / rect.width) * 100,
+    y: ((point.y - rect.top) / rect.height) * 100,
+  }
+}
