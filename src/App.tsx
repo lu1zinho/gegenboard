@@ -3,6 +3,7 @@ import './App.css'
 import { createDefaultBoard } from './board/defaultBoard'
 import { applyFormation, formationOf } from './board/formations'
 import { autosaveBoard, loadAutosavedBoard } from './board/storage'
+import { moveToken } from './board/moveToken'
 import type { Board } from './board/types'
 import { Bench } from './components/Bench'
 import { BoardsPanel } from './components/BoardsPanel'
@@ -60,7 +61,12 @@ export default function App() {
       <div className="stage">
         <Bench team={board.present.teams.home} side="home" />
         <div className="stage-pitch">
-          <Pitch board={board.present} />
+          <Pitch
+            board={board.present}
+            onMoveToken={(token, position, gesture) => {
+              board.change((current) => moveToken(current, token, position), { group: gesture })
+            }}
+          />
         </div>
         <Bench team={board.present.teams.away} side="away" />
       </div>
