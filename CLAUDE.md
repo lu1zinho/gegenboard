@@ -43,19 +43,27 @@ Before pushing, run what CI runs:
 
 ```
 src/
-  main.tsx, App.tsx    entry point; App shows the board in a 16:9 stage
+  main.tsx, App.tsx    entry point; App holds the board history and shows the board in a
+                       16:9 stage
+  storage.ts           getLocalStorage() and helpers shared by everything kept in storage
   board/               the board data model: pure TypeScript, no React
     types.ts           Board, Team, Player, Ball, Arrow, PitchPosition
     pitch.ts           pitch dimensions and position helpers
     defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
     validate.ts        validateBoard(): invariants the types can't express
+    savedBoards.ts     save, rename and delete named boards (SavedBoard)
+    storage.ts         readBoard(), autosave and named boards in localStorage
+  history/             generic undo/redo
+    history.ts         History<T>: past, present and future states; pure, no React
+    useHistory.ts      useHistory(): a value with change, undo and redo
+    useHistoryShortcuts.ts  Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y
   roster/              team rosters: pure TypeScript, no React
     types.ts           Roster, RosterPlayer, SquadEntry
     squadList.ts       parseSquadList(): pasted "10 Name" lines to players and line errors
     roster.ts          create, edit and validate rosters (validateRoster)
     storage.ts         save and load rosters in localStorage
   components/          React components (Pitch renders a Board as SVG; RosterPanel manages
-                       rosters)
+                       rosters; BoardsPanel manages named boards)
   test/                Vitest setup and shared test helpers
 e2e/                   Playwright specs (*.spec.ts)
 ```
@@ -73,7 +81,8 @@ e2e/                   Playwright specs (*.spec.ts)
   a team attacking right and use `mirrorPosition` for the away side.
 - Teams have exactly 11 players; shirt numbers are 1–99 and unique within a team; ids are
   unique across the board; colours are `#rrggbb`. `validateBoard` checks all of this. Keep it
-  in step with any model change.
+  in step with any model change, and `readBoard` too: it rebuilds stored boards field by field,
+  so a field it doesn't know is dropped on load.
 - Model code is pure functions over plain data. Treat boards as immutable in app code and
   return new objects rather than mutating (tests may mutate fresh boards to set up cases).
 
@@ -89,9 +98,37 @@ e2e/                   Playwright specs (*.spec.ts)
 - Rosters are stored in localStorage under `gegenboard.rosters` as `{ version, rosters }`,
   apart from anything else the app saves. Bump `ROSTERS_SCHEMA_VERSION` on breaking changes
   and migrate older data in `deserialiseRosters`. Go through `loadRosters`/`saveRosters`/
-  `getLocalStorage`, which wrap every storage access in try/catch and never throw, rather than
-  using `localStorage` directly in app code. Unit tests get a cleared `localStorage` after
-  each test.
+  `getLocalStorage` (in `src/storage.ts`), which wrap every storage access in try/catch and
+  never throw, rather than using `localStorage` directly in app code. Unit tests get a cleared
+  `localStorage` after each test.
+
+## Undo and redo
+
+- `App` keeps the board in `useHistory` (`src/history/`): past states, the present board and
+  undone states to redo. **Change the board only through `board.change(update)`**, with a pure
+  `update` that takes the present board and returns a new one (or the same object to change
+  nothing). Then the change can be undone and redone and is autosaved, with no extra work.
+  Never keep a copy of the board in other state.
+- A new change clears redo. At most `HISTORY_LIMIT` (100) undo steps are kept.
+- For gestures that change the board many times, such as a drag or typing in a field, pass
+  the same `group` to each change (`board.change(update, { group: 'drag-3' })`) so the gesture
+  undoes in one step. Use a new group per gesture; undo and redo end a group.
+- Ctrl+Z undoes; Ctrl+Shift+Z and Ctrl+Y redo (⌘ for Ctrl on a Mac). Inside text fields the
+  shortcuts are left to the field, so they undo typing as usual.
+- `History<T>` and `useHistory` are generic: use them for other undoable state too.
+
+## Saved boards
+
+- The board on screen is autosaved as JSON under `gegenboard.board` after every change
+  (undo and redo included) and restored on start. Nothing is written until the board changes.
+- Named boards are stored under `gegenboard.savedBoards` as `{ version, boards }`, each
+  `{ id, name, board }`. Names are unique ignoring case: saving under an existing name replaces
+  that board; renaming to a taken name is refused. Loading a named board is an undoable change.
+- Every stored board carries `Board.version`; the list has its own
+  `SAVED_BOARDS_SCHEMA_VERSION`. On a breaking board change bump `Board.version` and
+  `BOARD_SCHEMA_VERSION` together and convert older boards in `readBoard`. Boards that can't be
+  read (damaged, newer, or breaking `validateBoard`) are skipped, never loaded.
+- Go through the functions in `src/board/storage.ts`, which never throw, as for rosters.
 
 ## Conventions
 
