@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -345,7 +345,7 @@ describe('App saved boards and undo', () => {
   })
 })
 
-describe('formations', () => {
+describe('App formations', () => {
   it('moves a team to the chosen formation and keeps its players', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -364,7 +364,7 @@ describe('formations', () => {
   })
 })
 
-describe('formations and undo', () => {
+describe('App formations and undo', () => {
   function picker(side: 'Home' | 'Away') {
     return screen.getByRole('combobox', { name: `${side} formation` })
   }
@@ -421,5 +421,68 @@ describe('formations and undo', () => {
     )
     expect(picker('Away')).toHaveValue('4-4-2')
     expect(within(picker('Away')).queryByRole('option', { name: 'Custom' })).toBeNull()
+  })
+})
+
+describe('App dragging and undo', () => {
+  /** Drags the home number 9 by `dx` and `dy` percent of the pitch, in several moves. */
+  function dragStriker(dx: number, dy: number) {
+    // jsdom has no layout: pretend the pitch is 1050 x 680 px at the top left of the page.
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 1050, 680),
+    )
+    Object.defineProperty(SVGElement.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    const striker = screen.getByRole('listitem', { name: '9 Okafor' })
+    // At kick-off the striker stands at 46% across and 50% down.
+    const start = { clientX: 483, clientY: 340 }
+    fireEvent.pointerDown(striker, { pointerId: 1, button: 0, ...start })
+    for (const step of [1, 2, 3]) {
+      fireEvent.pointerMove(striker, {
+        pointerId: 1,
+        clientX: start.clientX + (dx * 10.5 * step) / 3,
+        clientY: start.clientY + (dy * 6.8 * step) / 3,
+      })
+    }
+    fireEvent.pointerUp(striker, { pointerId: 1 })
+  }
+
+  it('undoes a whole drag in one step, and redoes it', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    dragStriker(30, -20)
+    const dragged = strikerTransform()
+    expect(dragged).toBe('translate(79.8 20.4)')
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+    await user.keyboard('{Control>}y{/Control}')
+    expect(strikerTransform()).toBe(dragged)
+  })
+
+  it('makes each drag its own undo step, after a formation change', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    dragStriker(10, 0)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Away formation' }), '3-5-2')
+    dragStriker(-10, 0)
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(screen.getByRole('combobox', { name: 'Away formation' })).toHaveValue('3-5-2')
+    await user.keyboard('{Control>}z{/Control}')
+    expect(screen.getByRole('combobox', { name: 'Away formation' })).toHaveValue('4-4-2')
+    await user.keyboard('{Control>}z{/Control}')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+  })
+
+  it('autosaves the dragged board', () => {
+    render(<App />)
+    dragStriker(30, -20)
+    const saved = loadAutosavedBoard(getLocalStorage())
+    expect(saved && getPlayer(saved, 'home', 9).position).toEqual({ x: 76, y: 30 })
   })
 })
