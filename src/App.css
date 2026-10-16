@@ -44,3 +44,18 @@
 .panel-toggle[aria-expanded='true'] {
   opacity: 1;
 }
+
+/* Small and faint in the bottom corner, like the rosters toggle. */
+.formation-controls {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0.6;
+}
+
+.formation-controls:hover,
+.formation-controls:focus-within {
+  opacity: 1;
+}

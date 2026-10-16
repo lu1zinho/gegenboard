@@ -67,6 +67,7 @@ test('P hides every control and shows them again', async ({ page }) => {
 
   await page.keyboard.press('p')
   await expect(page.getByRole('button')).toHaveCount(0)
+  await expect(page.getByRole('combobox')).toHaveCount(0)
   await expect(page.getByRole('textbox')).toHaveCount(0)
   await expect(page.getByRole('complementary', { name: 'Rosters' })).toBeHidden()
   await expect(page.getByRole('group', { name: 'Tactics board' })).toBeVisible()
