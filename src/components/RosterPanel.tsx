@@ -1,13 +1,13 @@
 import { useId, useState } from 'react'
 import type { TeamColours } from '../board/types'
 import { createRoster, nextRosterId, removeRoster, upsertRoster } from '../roster/roster'
-import { loadRosters, saveRosters } from '../roster/storage'
-import { getLocalStorage } from '../storage'
+import { loadRosters, storeRosters } from '../roster/storage'
 import type { Roster, SquadEntry } from '../roster/types'
+import { getLocalStorage } from '../storage'
+import { countOf } from '../text'
 import { RosterEditor } from './RosterEditor'
 import './Rosters.css'
 import { SquadImportForm } from './SquadImportForm'
-import { countOf } from './text'
 
 const SAVE_FAILED =
   "Couldn't save: browser storage is blocked or full, so changes will be lost when you close the page"
@@ -27,14 +27,14 @@ export function RosterPanel({
 }) {
   const headingId = useId()
   const [loaded] = useState(() => loadRosters(getLocalStorage()))
-  const [rosters, setRosters] = useState(loaded.rosters)
+  const [rosters, setRosters] = useState(loaded.items)
   const [status, setStatus] = useState(loaded.problem ?? '')
   const [editingId, setEditingId] = useState<string | null>(null)
   const editing = rosters.find((roster) => roster.id === editingId)
 
   function commit(next: Roster[], message: string) {
     setRosters(next)
-    setStatus(saveRosters(getLocalStorage(), next) ? message : SAVE_FAILED)
+    setStatus(storeRosters(getLocalStorage(), next) ? message : SAVE_FAILED)
   }
 
   function handleCreate(name: string, colours: TeamColours, players: SquadEntry[]) {

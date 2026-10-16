@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPlayer } from '../test/board'
+import { boardWithStrikerAt } from '../test/board'
 import { createDefaultBoard } from './defaultBoard'
 import {
   boardNameProblem,
@@ -8,17 +8,8 @@ import {
   renameProblem,
   renameSavedBoard,
   saveBoard,
-  tidyBoardName,
   type SavedBoard,
 } from './savedBoards'
-import type { Board } from './types'
-
-/** The default board with the home number 9 moved to `x`, so boards can be told apart. */
-function boardWithStrikerAt(x: number): Board {
-  const board = createDefaultBoard()
-  getPlayer(board, 'home', 9).position = { x, y: 50 }
-  return board
-}
 
 const KICK_OFF: SavedBoard = { id: 'board-1', name: 'Kick-off', board: createDefaultBoard() }
 const HIGH_PRESS: SavedBoard = { id: 'board-2', name: 'High press', board: boardWithStrikerAt(80) }
@@ -98,10 +89,6 @@ describe('findSavedBoard', () => {
 })
 
 describe('board names', () => {
-  it('tidies whitespace', () => {
-    expect(tidyBoardName('\t High \n press  ')).toBe('High press')
-  })
-
   it('requires a name that is not blank', () => {
     expect(boardNameProblem('High press')).toBeNull()
     expect(boardNameProblem('')).toBe('Give the board a name')

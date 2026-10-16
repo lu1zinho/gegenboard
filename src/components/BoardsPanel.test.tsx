@@ -4,21 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createDefaultBoard } from '../board/defaultBoard'
 import type { SavedBoard } from '../board/savedBoards'
 import { SAVED_BOARDS_STORAGE_KEY, loadSavedBoards, storeSavedBoards } from '../board/storage'
-import type { Board } from '../board/types'
 import { getLocalStorage } from '../storage'
-import { getPlayer } from '../test/board'
+import { boardWithStrikerAt } from '../test/board'
 import { BoardsPanel } from './BoardsPanel'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
-
-/** The default board with the home number 9 moved to `x`, so boards can be told apart. */
-function boardWithStrikerAt(x: number): Board {
-  const board = createDefaultBoard()
-  getPlayer(board, 'home', 9).position = { x, y: 50 }
-  return board
-}
 
 const KICK_OFF: SavedBoard = { id: 'board-1', name: 'Kick-off', board: createDefaultBoard() }
 const HIGH_PRESS: SavedBoard = { id: 'board-2', name: 'High press', board: boardWithStrikerAt(80) }
@@ -37,7 +29,7 @@ function renderPanel({ board = createDefaultBoard(), onLoad = vi.fn(), onClose =
 }
 
 function savedBoards() {
-  return loadSavedBoards(getLocalStorage()).boards
+  return loadSavedBoards(getLocalStorage()).items
 }
 
 /** The names of the saved boards in the order listed, read from their Load buttons. */

@@ -1,3 +1,5 @@
+import { nextId } from '../ids'
+import { tidyName } from '../text'
 import type { Board } from './types'
 
 /*
@@ -14,11 +16,6 @@ export interface SavedBoard {
   board: Board
 }
 
-/** Trims a name and collapses the whitespace inside it. */
-export function tidyBoardName(name: string): string {
-  return name.replace(/\s+/gu, ' ').trim()
-}
-
 /** The saved board with this name, ignoring case and extra whitespace, if there is one. */
 export function findSavedBoard(
   boards: readonly SavedBoard[],
@@ -30,7 +27,7 @@ export function findSavedBoard(
 
 /** Why a board can't be saved under this name, or `null` if it can. */
 export function boardNameProblem(name: string): string | null {
-  return tidyBoardName(name) === '' ? 'Give the board a name' : null
+  return tidyName(name) === '' ? 'Give the board a name' : null
 }
 
 /** Why the saved board with this id can't be renamed to `name`, or `null` if it can. */
@@ -50,14 +47,18 @@ export function renameProblem(
  * replaced in its place; otherwise the board is added at the end.
  */
 export function saveBoard(boards: readonly SavedBoard[], name: string, board: Board): SavedBoard[] {
-  const tidied = tidyBoardName(name)
+  const tidied = tidyName(name)
   const existing = findSavedBoard(boards, tidied)
   if (existing) {
     return boards.map((saved) =>
       saved.id === existing.id ? { ...saved, name: tidied, board } : saved,
     )
   }
-  return [...boards, { id: nextSavedBoardId(boards), name: tidied, board }]
+  const id = nextId(
+    'board-',
+    boards.map((saved) => saved.id),
+  )
+  return [...boards, { id, name: tidied, board }]
 }
 
 export function renameSavedBoard(
@@ -65,7 +66,7 @@ export function renameSavedBoard(
   id: string,
   name: string,
 ): SavedBoard[] {
-  const tidied = tidyBoardName(name)
+  const tidied = tidyName(name)
   return boards.map((saved) => (saved.id === id ? { ...saved, name: tidied } : saved))
 }
 
@@ -73,16 +74,6 @@ export function deleteSavedBoard(boards: readonly SavedBoard[], id: string): Sav
   return boards.filter((saved) => saved.id !== id)
 }
 
-/** An id no saved board has: `board-` and one more than the highest number in use. */
-function nextSavedBoardId(boards: readonly SavedBoard[]): string {
-  let highest = 0
-  for (const { id } of boards) {
-    const match = /^board-(\d+)$/u.exec(id)
-    if (match?.[1] !== undefined) highest = Math.max(highest, Number(match[1]))
-  }
-  return `board-${highest + 1}`
-}
-
 function comparable(name: string): string {
-  return tidyBoardName(name).toLocaleLowerCase()
+  return tidyName(name).toLocaleLowerCase()
 }

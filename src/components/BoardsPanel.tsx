@@ -6,12 +6,12 @@ import {
   renameProblem,
   renameSavedBoard,
   saveBoard,
-  tidyBoardName,
   type SavedBoard,
 } from '../board/savedBoards'
 import { loadSavedBoards, storeSavedBoards } from '../board/storage'
 import type { Board } from '../board/types'
 import { getLocalStorage } from '../storage'
+import { tidyName } from '../text'
 import './Boards.css'
 
 const STORE_FAILED =
@@ -38,7 +38,7 @@ export function BoardsPanel({
 }) {
   const headingId = useId()
   const [loaded] = useState(() => loadSavedBoards(getLocalStorage()))
-  const [boards, setBoards] = useState(loaded.boards)
+  const [boards, setBoards] = useState(loaded.items)
   const [status, setStatus] = useState(loaded.problem ?? '')
 
   function commit(next: SavedBoard[], message: string) {
@@ -48,7 +48,7 @@ export function BoardsPanel({
 
   function handleSave(name: string) {
     const verb = findSavedBoard(boards, name) ? 'Updated' : 'Saved'
-    commit(saveBoard(boards, name, board), `${verb} ${tidyBoardName(name)}`)
+    commit(saveBoard(boards, name, board), `${verb} ${tidyName(name)}`)
   }
 
   return (
@@ -86,7 +86,7 @@ export function BoardsPanel({
               }}
               onRename={(name) => {
                 const renamed = renameSavedBoard(boards, saved.id, name)
-                commit(renamed, `Renamed ${saved.name} to ${tidyBoardName(name)}`)
+                commit(renamed, `Renamed ${saved.name} to ${tidyName(name)}`)
               }}
               onDelete={() => {
                 commit(deleteSavedBoard(boards, saved.id), `Deleted ${saved.name}`)

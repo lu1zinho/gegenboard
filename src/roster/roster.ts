@@ -1,6 +1,7 @@
 import type { TeamColours } from '../board/types'
-import { isHexColour } from '../board/validate'
-import { MAX_SHIRT_NUMBER, MIN_SHIRT_NUMBER, isShirtNumber, normaliseName } from './squadList'
+import { MAX_SHIRT_NUMBER, MIN_SHIRT_NUMBER, isHexColour, isShirtNumber } from '../board/validate'
+import { nextId } from '../ids'
+import { tidyName } from '../text'
 import type { Roster, RosterPlayer, SquadEntry } from './types'
 
 /*
@@ -13,20 +14,12 @@ export const DEFAULT_ROSTER_COLOURS: Readonly<TeamColours> = {
   secondary: '#ffffff',
 }
 
-/** The next unused id with this prefix and a number, e.g. `p3` after `p1` and `p2`. */
-function nextId(prefix: string, ids: readonly string[]): string {
-  let highest = 0
-  for (const id of ids) {
-    const suffix = id.slice(prefix.length)
-    if (id.startsWith(prefix) && /^\d+$/u.test(suffix)) highest = Math.max(highest, Number(suffix))
-  }
-  return `${prefix}${highest + 1}`
-}
-
 /** An id for a new roster that no roster in the list has. */
 export function nextRosterId(rosters: readonly Roster[]): string {
-  const ids = rosters.map((roster) => roster.id)
-  return nextId('roster-', ids)
+  return nextId(
+    'roster-',
+    rosters.map((roster) => roster.id),
+  )
 }
 
 /** A roster with the given players, in order, and tidied names. */
@@ -52,8 +45,8 @@ export function createRoster(
 export function tidyRoster(roster: Roster): Roster {
   return {
     ...roster,
-    name: normaliseName(roster.name),
-    players: roster.players.map((player) => ({ ...player, name: normaliseName(player.name) })),
+    name: tidyName(roster.name),
+    players: roster.players.map((player) => ({ ...player, name: tidyName(player.name) })),
   }
 }
 
@@ -76,9 +69,11 @@ export function lowestFreeShirtNumber(roster: Roster): number | null {
 
 /** Adds a player at the end of the roster, with a new id. */
 export function addPlayer(roster: Roster, entry: SquadEntry): Roster {
-  const ids = roster.players.map((player) => player.id)
   const player: RosterPlayer = {
-    id: nextId('p', ids),
+    id: nextId(
+      'p',
+      roster.players.map((p) => p.id),
+    ),
     number: entry.number,
     name: entry.name,
   }
@@ -117,7 +112,7 @@ export function removePlayer(roster: Roster, playerId: string): Roster {
 export function validateRoster(roster: Roster): string[] {
   const problems: string[] = []
 
-  if (normaliseName(roster.name) === '') problems.push('The team needs a name')
+  if (tidyName(roster.name) === '') problems.push('The team needs a name')
   if (!isHexColour(roster.colours.primary)) {
     problems.push('The primary colour must be a #rrggbb colour')
   }
@@ -141,7 +136,7 @@ export function validateRoster(roster: Roster): string[] {
     }
     numbers.add(player.number)
 
-    if (normaliseName(player.name) === '') problems.push(`${label} needs a name`)
+    if (tidyName(player.name) === '') problems.push(`${label} needs a name`)
   })
 
   return problems

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadRosters, saveRosters } from '../roster/storage'
+import { loadRosters, storeRosters } from '../roster/storage'
 import { getLocalStorage } from '../storage'
 import { makeRoster } from '../test/roster'
 import { RosterPanel } from './RosterPanel'
@@ -24,7 +24,7 @@ function renderPanel(onClose = () => {}) {
 }
 
 function savedRosters() {
-  return loadRosters(getLocalStorage()).rosters
+  return loadRosters(getLocalStorage()).items
 }
 
 describe('RosterPanel', () => {
@@ -129,7 +129,7 @@ describe('RosterPanel', () => {
   })
 
   it('adds new rosters after those saved earlier', async () => {
-    saveRosters(getLocalStorage(), [makeRoster({ id: 'roster-4' })])
+    storeRosters(getLocalStorage(), [makeRoster({ id: 'roster-4' })])
     const { user, teamName, squadList, create } = renderPanel()
 
     const list = screen.getByRole('list', { name: 'Saved rosters' })
@@ -148,7 +148,7 @@ describe('RosterPanel', () => {
   })
 
   it('edits a saved roster and saves the changes', async () => {
-    saveRosters(getLocalStorage(), [makeRoster()])
+    storeRosters(getLocalStorage(), [makeRoster()])
     const { user } = renderPanel()
 
     await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))
@@ -170,7 +170,7 @@ describe('RosterPanel', () => {
   })
 
   it('goes back to the list without saving when editing is cancelled', async () => {
-    saveRosters(getLocalStorage(), [makeRoster()])
+    storeRosters(getLocalStorage(), [makeRoster()])
     const { user } = renderPanel()
 
     await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))
@@ -183,7 +183,7 @@ describe('RosterPanel', () => {
   })
 
   it('deletes a roster', async () => {
-    saveRosters(getLocalStorage(), [makeRoster(), makeRoster({ id: 'roster-2', name: 'Rondo' })])
+    storeRosters(getLocalStorage(), [makeRoster(), makeRoster({ id: 'roster-2', name: 'Rondo' })])
     const { user } = renderPanel()
 
     await user.click(screen.getByRole('button', { name: 'Edit Gegenpress FC' }))

@@ -1,11 +1,11 @@
 import { useId, useState, type SubmitEvent } from 'react'
 import type { TeamColours } from '../board/types'
 import { DEFAULT_ROSTER_COLOURS } from '../roster/roster'
-import { normaliseName, parseSquadList } from '../roster/squadList'
+import { parseSquadList } from '../roster/squadList'
 import type { SquadEntry } from '../roster/types'
+import { countOf, tidyName } from '../text'
 import { ColourFields } from './ColourFields'
 import './Rosters.css'
-import { countOf } from './text'
 
 const SQUAD_LIST_PLACEHOLDER = 'One player per line:\n1 Novak\n10. Ferreira\n9 - Okafor'
 
@@ -31,7 +31,7 @@ export function SquadImportForm({
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (normaliseName(name) === '') {
+    if (tidyName(name) === '') {
       setError('Enter a team name')
       return
     }

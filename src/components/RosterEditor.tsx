@@ -9,11 +9,11 @@ import {
   updatePlayer,
   validateRoster,
 } from '../roster/roster'
-import { MAX_SHIRT_NUMBER, MIN_SHIRT_NUMBER } from '../roster/squadList'
+import { MAX_SHIRT_NUMBER, MIN_SHIRT_NUMBER } from '../board/validate'
 import type { Roster } from '../roster/types'
+import { countOf } from '../text'
 import { ColourFields } from './ColourFields'
 import './Rosters.css'
-import { countOf } from './text'
 
 /**
  * Edits a copy of a roster. Nothing changes until the roster is saved, and it can only be

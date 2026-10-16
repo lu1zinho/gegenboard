@@ -10,20 +10,12 @@ import {
   loadAutosavedBoard,
   storeSavedBoards,
 } from './board/storage'
-import type { Board } from './board/types'
 import { getLocalStorage } from './storage'
-import { getPlayer } from './test/board'
+import { boardWithStrikerAt, getPlayer } from './test/board'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
-
-/** The default board with the home number 9 moved to `x`, so boards can be told apart. */
-function boardWithStrikerAt(x: number): Board {
-  const board = createDefaultBoard()
-  getPlayer(board, 'home', 9).position = { x, y: 50 }
-  return board
-}
 
 const HIGH_PRESS: SavedBoard = { id: 'board-1', name: 'High press', board: boardWithStrikerAt(80) }
 const LOW_BLOCK: SavedBoard = { id: 'board-2', name: 'Low block', board: boardWithStrikerAt(30) }
