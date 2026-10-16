@@ -42,8 +42,8 @@ test('keeps a changed board after a reload, and undoes and redoes the change', a
   await expect(striker).toHaveAttribute('transform', 'translate(48.3 34)')
   await expect(gegenpress).toHaveCount(0)
 
-  // There is no way to move players yet, so change the board by loading a saved one. Store it
-  // as a visit before this one would have, then reload so the app lists it.
+  // Change the whole board at once by loading a saved one. Store it as a visit before this one
+  // would have, then reload so the app lists it.
   const savedBoards = {
     version: 1,
     boards: [{ id: 'board-1', name: 'High press', board: highPressBoard() }],

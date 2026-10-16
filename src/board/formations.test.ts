@@ -107,6 +107,12 @@ describe('applyFormation', () => {
     }
   })
 
+  it('puts every player back on their own spot after switching away and back', () => {
+    const board = createDefaultBoard()
+    const back = applyFormation(applyFormation(board, 'home', '3-5-2'), 'home', '4-3-3')
+    expect(back).toEqual(board)
+  })
+
   it('changes positions when the formation differs from the lineup', () => {
     const before = createDefaultBoard()
     const after = applyFormation(before, 'home', '4-2-3-1')

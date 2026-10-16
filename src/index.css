@@ -38,6 +38,7 @@ html[data-bg='transparent'] body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }

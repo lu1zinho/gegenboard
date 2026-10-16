@@ -4,21 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createDefaultBoard } from '../board/defaultBoard'
 import type { SavedBoard } from '../board/savedBoards'
 import { SAVED_BOARDS_STORAGE_KEY, loadSavedBoards, storeSavedBoards } from '../board/storage'
-import type { Board } from '../board/types'
 import { getLocalStorage } from '../storage'
-import { getPlayer } from '../test/board'
+import { boardWithStrikerAt } from '../test/board'
 import { BoardsPanel } from './BoardsPanel'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
-
-/** The default board with the home number 9 moved to `x`, so boards can be told apart. */
-function boardWithStrikerAt(x: number): Board {
-  const board = createDefaultBoard()
-  getPlayer(board, 'home', 9).position = { x, y: 50 }
-  return board
-}
 
 const KICK_OFF: SavedBoard = { id: 'board-1', name: 'Kick-off', board: createDefaultBoard() }
 const HIGH_PRESS: SavedBoard = { id: 'board-2', name: 'High press', board: boardWithStrikerAt(80) }
@@ -37,7 +29,7 @@ function renderPanel({ board = createDefaultBoard(), onLoad = vi.fn(), onClose =
 }
 
 function savedBoards() {
-  return loadSavedBoards(getLocalStorage()).boards
+  return loadSavedBoards(getLocalStorage()).items
 }
 
 /** The names of the saved boards in the order listed, read from their Load buttons. */
@@ -154,15 +146,22 @@ describe('BoardsPanel', () => {
     expect(savedBoards()).toEqual([KICK_OFF, HIGH_PRESS])
   })
 
-  it('cancels renaming on Escape without closing the panel', async () => {
+  it('cancels renaming on Escape, keeping the key from closing the panel', async () => {
     storeSavedBoards(getLocalStorage(), [KICK_OFF])
-    const { user, onClose } = renderPanel()
+    const { user } = renderPanel()
+    const escapes: KeyboardEvent[] = []
+    const recordEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') escapes.push(event)
+    }
+    window.addEventListener('keydown', recordEscape)
 
     await user.click(screen.getByRole('button', { name: 'Rename Kick-off' }))
     await user.type(screen.getByRole('textbox', { name: 'New name' }), ' 2{Escape}')
+    window.removeEventListener('keydown', recordEscape)
 
     expect(screen.queryByRole('form', { name: 'Rename Kick-off' })).not.toBeInTheDocument()
-    expect(onClose).not.toHaveBeenCalled()
+    // Marked as handled, so the app's Escape shortcut leaves the panel open.
+    expect(escapes.map((event) => event.defaultPrevented)).toEqual([true])
     expect(listedNames()).toEqual(['Kick-off'])
     expect(screen.getByRole('button', { name: 'Rename Kick-off' })).toHaveFocus()
   })
@@ -233,12 +232,9 @@ describe('BoardsPanel', () => {
     )
   })
 
-  it('closes on the Close button and on Escape', async () => {
-    const { user, onClose, name } = renderPanel()
-
+  it('closes on the Close button', async () => {
+    const { user, onClose } = renderPanel()
     await user.click(screen.getByRole('button', { name: 'Close' }))
-    await user.type(name, '{Escape}')
-
-    expect(onClose).toHaveBeenCalledTimes(2)
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

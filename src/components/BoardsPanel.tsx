@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type SubmitEvent } from 'react'
+import { useRef, useState, type SubmitEvent } from 'react'
 import {
   boardNameProblem,
   deleteSavedBoard,
@@ -6,13 +6,14 @@ import {
   renameProblem,
   renameSavedBoard,
   saveBoard,
-  tidyBoardName,
   type SavedBoard,
 } from '../board/savedBoards'
 import { loadSavedBoards, storeSavedBoards } from '../board/storage'
 import type { Board } from '../board/types'
 import { getLocalStorage } from '../storage'
-import './Boards.css'
+import { tidyName } from '../text'
+import './BoardsPanel.css'
+import { Panel } from './Panel'
 
 const STORE_FAILED =
   "Couldn't save: browser storage is blocked or full, so saved boards will be lost when you close the page"
@@ -36,9 +37,8 @@ export function BoardsPanel({
   onLoad: (board: Board) => void
   onClose: () => void
 }) {
-  const headingId = useId()
   const [loaded] = useState(() => loadSavedBoards(getLocalStorage()))
-  const [boards, setBoards] = useState(loaded.boards)
+  const [boards, setBoards] = useState(loaded.items)
   const [status, setStatus] = useState(loaded.problem ?? '')
 
   function commit(next: SavedBoard[], message: string) {
@@ -48,31 +48,14 @@ export function BoardsPanel({
 
   function handleSave(name: string) {
     const verb = findSavedBoard(boards, name) ? 'Updated' : 'Saved'
-    commit(saveBoard(boards, name, board), `${verb} ${tidyBoardName(name)}`)
+    commit(saveBoard(boards, name, board), `${verb} ${tidyName(name)}`)
   }
 
   return (
-    <aside
-      id={id}
-      className="boards-panel"
-      hidden={hidden}
-      aria-labelledby={headingId}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onClose()
-      }}
-    >
-      <header className="boards-panel-header">
-        <h2 id={headingId}>Boards</h2>
-        <button type="button" onClick={onClose}>
-          Close
-        </button>
-      </header>
-      <p className="boards-status" role="status">
-        {status}
-      </p>
+    <Panel id={id} title="Boards" hidden={hidden} status={status} onClose={onClose}>
       <SaveBoardForm onSave={handleSave} />
       {boards.length === 0 ? (
-        <p className="boards-empty">No saved boards yet.</p>
+        <p className="panel-empty">No saved boards yet.</p>
       ) : (
         <ul className="boards-list" aria-label="Saved boards">
           {boards.map((saved) => (
@@ -86,7 +69,7 @@ export function BoardsPanel({
               }}
               onRename={(name) => {
                 const renamed = renameSavedBoard(boards, saved.id, name)
-                commit(renamed, `Renamed ${saved.name} to ${tidyBoardName(name)}`)
+                commit(renamed, `Renamed ${saved.name} to ${tidyName(name)}`)
               }}
               onDelete={() => {
                 commit(deleteSavedBoard(boards, saved.id), `Deleted ${saved.name}`)
@@ -95,7 +78,7 @@ export function BoardsPanel({
           ))}
         </ul>
       )}
-    </aside>
+    </Panel>
   )
 }
 
@@ -203,7 +186,7 @@ function SavedBoardItem({
       {open === 'delete' && (
         <div className="boards-confirm" role="group" aria-label={`Confirm deleting ${saved.name}`}>
           <p>Delete {saved.name}? This can’t be undone.</p>
-          <button type="button" className="boards-danger" onClick={onDelete}>
+          <button type="button" className="danger" onClick={onDelete}>
             Delete
           </button>
           <button
@@ -248,9 +231,9 @@ function RenameForm({
       aria-label={`Rename ${saved.name}`}
       onSubmit={handleSubmit}
       onKeyDown={(event) => {
-        // Escape cancels the rename without closing the panel.
         if (event.key !== 'Escape') return
-        event.stopPropagation()
+        // Handled here, so the app's Escape shortcut leaves the panel open.
+        event.preventDefault()
         onCancel()
       }}
     >

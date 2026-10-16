@@ -1,30 +1,3 @@
-/* Sits over the right of the stage, like the rosters panel. */
-.boards-panel {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: min(30rem, 100%);
-  overflow-y: auto;
-  padding: 1rem 1.5rem;
-  background: #111;
-  border-left: 1px solid #333;
-  box-shadow: -0.5rem 0 2rem rgb(0 0 0 / 0.5);
-}
-
-.boards-panel h2 {
-  margin: 0;
-}
-
-.boards-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.boards-status {
-  min-height: 1.5em;
-  color: #a5d6a7;
-}
-
 .boards-save,
 .boards-rename,
 .boards-confirm {
@@ -62,17 +35,13 @@
   margin: 0;
 }
 
-.boards-error,
-.boards-danger {
+.boards-error {
   color: #ef9a9a;
 }
 
-.boards-empty {
-  color: #aaa;
-}
-
 .boards-list {
-  margin: 0;
+  /* The panel has no bottom padding. */
+  margin: 0 0 1rem;
   padding: 0;
   list-style: none;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normaliseName, parseSquadList } from './squadList'
+import { parseSquadList } from './squadList'
 
 describe('parseSquadList', () => {
   it('reads one "number name" player per line, in order', () => {
@@ -127,15 +127,5 @@ describe('parseSquadList', () => {
     expect(errors).toEqual([])
     expect(players).toHaveLength(25)
     expect(players[24]).toEqual({ number: 25, name: 'Player 25' })
-  })
-})
-
-describe('normaliseName', () => {
-  it('trims and collapses whitespace', () => {
-    expect(normaliseName('  Lionel \t  Messi \n')).toBe('Lionel Messi')
-  })
-
-  it('leaves a tidy name alone', () => {
-    expect(normaliseName('Virgil van Dijk')).toBe('Virgil van Dijk')
   })
 })

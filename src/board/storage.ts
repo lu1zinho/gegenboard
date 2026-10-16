@@ -1,5 +1,18 @@
-import { isRecord, type KeyValueStorage } from '../storage'
-import { findSavedBoard, tidyBoardName, type SavedBoard } from './savedBoards'
+import {
+  deserialiseList,
+  isRecord,
+  loadList,
+  readItem,
+  serialiseList,
+  storageUnavailable,
+  storeList,
+  writeItem,
+  type KeyValueStorage,
+  type LoadedList,
+  type StoredList,
+} from '../storage'
+import { tidyName } from '../text'
+import { findSavedBoard, type SavedBoard } from './savedBoards'
 import type { Arrow, Board, PitchPosition, Player, Team } from './types'
 import { validateBoard } from './validate'
 
@@ -21,19 +34,21 @@ export const BOARD_SCHEMA_VERSION: Board['version'] = 1
  */
 export const SAVED_BOARDS_SCHEMA_VERSION = 1
 
-export interface StoredSavedBoards {
-  version: typeof SAVED_BOARDS_SCHEMA_VERSION
-  boards: SavedBoard[]
+/** Named boards are stored as `{ version, boards }`. */
+const SAVED_BOARD_LIST: StoredList<SavedBoard> = {
+  key: SAVED_BOARDS_STORAGE_KEY,
+  version: SAVED_BOARDS_SCHEMA_VERSION,
+  field: 'boards',
+  noun: 'board',
+  readItem: (value, kept) => {
+    const saved = readSavedBoard(value)
+    // Ids and names must stay unique, so only the first of boards sharing either is kept.
+    if (!saved || kept.some((other) => other.id === saved.id)) return null
+    return findSavedBoard(kept, saved.name) ? null : saved
+  },
 }
 
-export interface LoadedSavedBoards {
-  boards: SavedBoard[]
-  /** Why some or all saved boards couldn't be loaded, or `null` if nothing went wrong. */
-  problem: string | null
-}
-
-export const SAVED_BOARDS_UNAVAILABLE =
-  "Browser storage isn't available, so saved boards won't be kept after you close the page"
+export const SAVED_BOARDS_UNAVAILABLE = storageUnavailable(SAVED_BOARD_LIST)
 
 /**
  * A valid board rebuilt from stored data, without unknown properties, or `null` if the data
@@ -75,14 +90,7 @@ export function deserialiseBoard(json: string | null): Board | null {
  * is blocked. Never throws.
  */
 export function loadAutosavedBoard(storage: KeyValueStorage | null): Board | null {
-  if (!storage) return null
-  let json: string | null
-  try {
-    json = storage.getItem(BOARD_STORAGE_KEY)
-  } catch {
-    return null
-  }
-  return deserialiseBoard(json)
+  return deserialiseBoard(readItem(storage, BOARD_STORAGE_KEY) ?? null)
 }
 
 /**
@@ -90,74 +98,24 @@ export function loadAutosavedBoard(storage: KeyValueStorage | null): Board | nul
  * `false` if it couldn't be saved, e.g. because storage is blocked or full.
  */
 export function autosaveBoard(storage: KeyValueStorage | null, board: Board): boolean {
-  if (!storage) return false
-  try {
-    storage.setItem(BOARD_STORAGE_KEY, JSON.stringify(board))
-    return true
-  } catch {
-    return false
-  }
+  return writeItem(storage, BOARD_STORAGE_KEY, JSON.stringify(board))
 }
 
 export function serialiseSavedBoards(boards: readonly SavedBoard[]): string {
-  const stored: StoredSavedBoards = { version: SAVED_BOARDS_SCHEMA_VERSION, boards: [...boards] }
-  return JSON.stringify(stored)
+  return serialiseList(SAVED_BOARD_LIST, boards)
 }
 
 /**
  * Reads named boards saved by `serialiseSavedBoards`. Never throws: saved boards that can't be
  * read are skipped and the reason is returned as `problem`.
  */
-export function deserialiseSavedBoards(json: string | null): LoadedSavedBoards {
-  if (json === null) return { boards: [], problem: null }
-
-  let data: unknown
-  try {
-    data = JSON.parse(json)
-  } catch {
-    return { boards: [], problem: "Saved boards are damaged and couldn't be read" }
-  }
-  if (!isRecord(data) || typeof data.version !== 'number') {
-    return { boards: [], problem: "Saved boards are in an unknown format and couldn't be read" }
-  }
-  if (data.version !== SAVED_BOARDS_SCHEMA_VERSION) {
-    return {
-      boards: [],
-      problem: `Saved boards use format version ${data.version}, which this version of Gegenboard can't read`,
-    }
-  }
-  if (!Array.isArray(data.boards)) {
-    return { boards: [], problem: "Saved boards are in an unknown format and couldn't be read" }
-  }
-
-  const stored: unknown[] = data.boards
-  const boards: SavedBoard[] = []
-  for (const value of stored) {
-    const saved = readSavedBoard(value)
-    // Ids and names must stay unique, so only the first of boards sharing either is kept.
-    if (!saved || boards.some((other) => other.id === saved.id)) continue
-    if (!findSavedBoard(boards, saved.name)) boards.push(saved)
-  }
-  const skipped = stored.length - boards.length
-  return {
-    boards,
-    problem:
-      skipped === 0
-        ? null
-        : `Skipped ${skipped} saved ${skipped === 1 ? 'board' : 'boards'} that couldn't be read`,
-  }
+export function deserialiseSavedBoards(json: string | null): LoadedList<SavedBoard> {
+  return deserialiseList(SAVED_BOARD_LIST, json)
 }
 
 /** Loads the named boards. Never throws, even where storage is blocked. */
-export function loadSavedBoards(storage: KeyValueStorage | null): LoadedSavedBoards {
-  if (!storage) return { boards: [], problem: SAVED_BOARDS_UNAVAILABLE }
-  let json: string | null
-  try {
-    json = storage.getItem(SAVED_BOARDS_STORAGE_KEY)
-  } catch {
-    return { boards: [], problem: SAVED_BOARDS_UNAVAILABLE }
-  }
-  return deserialiseSavedBoards(json)
+export function loadSavedBoards(storage: KeyValueStorage | null): LoadedList<SavedBoard> {
+  return loadList(storage, SAVED_BOARD_LIST)
 }
 
 /**
@@ -168,13 +126,7 @@ export function storeSavedBoards(
   storage: KeyValueStorage | null,
   boards: readonly SavedBoard[],
 ): boolean {
-  if (!storage) return false
-  try {
-    storage.setItem(SAVED_BOARDS_STORAGE_KEY, serialiseSavedBoards(boards))
-    return true
-  } catch {
-    return false
-  }
+  return storeList(storage, SAVED_BOARD_LIST, boards)
 }
 
 /** A saved board rebuilt from stored data, or `null` if it or its board can't be read. */
@@ -182,7 +134,7 @@ function readSavedBoard(value: unknown): SavedBoard | null {
   if (!isRecord(value) || typeof value.id !== 'string' || typeof value.name !== 'string') {
     return null
   }
-  const name = tidyBoardName(value.name)
+  const name = tidyName(value.name)
   const board = readBoard(value.board)
   if (value.id === '' || name === '' || !board) return null
   return { id: value.id, name, board }

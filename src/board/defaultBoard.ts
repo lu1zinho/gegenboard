@@ -1,40 +1,39 @@
-import { mirrorPosition } from './pitch'
+import { applyFormation } from './formations'
 import type { Board, Player, Team, TeamColours, TeamSide } from './types'
 
-/** A player as listed in a lineup, positioned for a team attacking left to right. */
-type LineupEntry = Omit<Player, 'id'>
+/** A player as listed in a lineup, before the formation places them. */
+type LineupEntry = Pick<Player, 'number' | 'name'>
 
-// 4-3-3 in its own half, ready for kick-off.
+// In formation order: goalkeeper first, then each line from the bottom touchline to the top.
 const HOME_LINEUP: readonly LineupEntry[] = [
-  { number: 1, name: 'Novak', position: { x: 5, y: 50 } },
-  { number: 2, name: 'Moreira', position: { x: 20, y: 84 } },
-  { number: 4, name: 'Hansen', position: { x: 17, y: 62 } },
-  { number: 5, name: 'Kowalski', position: { x: 17, y: 38 } },
-  { number: 3, name: 'Duarte', position: { x: 20, y: 16 } },
-  { number: 6, name: 'Lindqvist', position: { x: 29, y: 50 } },
-  { number: 8, name: 'Mensah', position: { x: 35, y: 68 } },
-  { number: 10, name: 'Ferreira', position: { x: 35, y: 32 } },
-  { number: 7, name: 'Takahashi', position: { x: 44, y: 84 } },
-  { number: 9, name: 'Okafor', position: { x: 46, y: 50 } },
-  { number: 11, name: 'Rossi', position: { x: 44, y: 16 } },
+  { number: 1, name: 'Novak' },
+  { number: 2, name: 'Moreira' },
+  { number: 4, name: 'Hansen' },
+  { number: 5, name: 'Kowalski' },
+  { number: 3, name: 'Duarte' },
+  { number: 8, name: 'Mensah' },
+  { number: 6, name: 'Lindqvist' },
+  { number: 10, name: 'Ferreira' },
+  { number: 7, name: 'Takahashi' },
+  { number: 9, name: 'Okafor' },
+  { number: 11, name: 'Rossi' },
 ]
 
-// 4-4-2 in its own half, ready for kick-off.
 const AWAY_LINEUP: readonly LineupEntry[] = [
-  { number: 1, name: 'Weber', position: { x: 5, y: 50 } },
-  { number: 2, name: 'Castillo', position: { x: 20, y: 84 } },
-  { number: 5, name: 'Brennan', position: { x: 17, y: 62 } },
-  { number: 6, name: 'Petrov', position: { x: 17, y: 38 } },
-  { number: 3, name: 'Laurent', position: { x: 20, y: 16 } },
-  { number: 7, name: 'Diallo', position: { x: 33, y: 84 } },
-  { number: 4, name: 'Jansen', position: { x: 31, y: 61 } },
-  { number: 8, name: 'Haddad', position: { x: 31, y: 39 } },
-  { number: 11, name: 'Moretti', position: { x: 33, y: 16 } },
-  { number: 9, name: 'Nakamura', position: { x: 44, y: 60 } },
-  { number: 10, name: 'Ortega', position: { x: 44, y: 40 } },
+  { number: 1, name: 'Weber' },
+  { number: 2, name: 'Castillo' },
+  { number: 5, name: 'Brennan' },
+  { number: 6, name: 'Petrov' },
+  { number: 3, name: 'Laurent' },
+  { number: 7, name: 'Diallo' },
+  { number: 4, name: 'Jansen' },
+  { number: 8, name: 'Haddad' },
+  { number: 11, name: 'Moretti' },
+  { number: 9, name: 'Nakamura' },
+  { number: 10, name: 'Ortega' },
 ]
 
-/** Builds a team, mirroring the lineup for the away side so it attacks right to left. */
+/** A team on the centre spot, for `applyFormation` to line up. */
 function createTeam(
   side: TeamSide,
   name: string,
@@ -44,18 +43,21 @@ function createTeam(
   return {
     name,
     colours: { ...colours },
-    players: lineup.map((entry) => ({
-      id: `${side}-${entry.number}`,
-      number: entry.number,
-      name: entry.name,
-      position: side === 'home' ? { ...entry.position } : mirrorPosition(entry.position),
+    players: lineup.map(({ number, name }) => ({
+      id: `${side}-${number}`,
+      number,
+      name,
+      position: { x: 50, y: 50 },
     })),
   }
 }
 
-/** A new board with both teams lined up for kick-off. Returns a fresh object every call. */
+/**
+ * A new board with both teams lined up for kick-off, home in a 4-3-3 and away in a 4-4-2, each
+ * in its own half. Returns a fresh object every call.
+ */
 export function createDefaultBoard(): Board {
-  return {
+  const board: Board = {
     version: 1,
     teams: {
       home: createTeam('home', 'Home', { primary: '#c62828', secondary: '#ffffff' }, HOME_LINEUP),
@@ -64,4 +66,5 @@ export function createDefaultBoard(): Board {
     ball: { position: { x: 50, y: 50 } },
     arrows: [],
   }
+  return applyFormation(applyFormation(board, 'home', '4-3-3'), 'away', '4-4-2')
 }

@@ -1,7 +1,6 @@
+import { MAX_SHIRT_NUMBER, MIN_SHIRT_NUMBER, isShirtNumber } from '../board/validate'
+import { tidyName } from '../text'
 import type { SquadEntry } from './types'
-
-export const MIN_SHIRT_NUMBER = 1
-export const MAX_SHIRT_NUMBER = 99
 
 /** A line of a squad list that couldn't be turned into a player. */
 export interface SquadLineError {
@@ -27,15 +26,6 @@ export interface ParsedSquadList {
 const SQUAD_LINE = /^#?(\d+)\s*(?:[.:)\-–—]\s*)?(.*)$/u
 const LETTER = /\p{L}/u
 
-/** Trims a name and collapses runs of whitespace (tabs, non-breaking spaces) to one space. */
-export function normaliseName(name: string): string {
-  return name.replace(/\s+/gu, ' ').trim()
-}
-
-export function isShirtNumber(value: number): boolean {
-  return Number.isInteger(value) && value >= MIN_SHIRT_NUMBER && value <= MAX_SHIRT_NUMBER
-}
-
 /**
  * Reads a pasted squad list with one player per line as `number name`, e.g. `10 Messi`.
  * It is forgiving about spacing and separators, and never throws: lines it can't read, or
@@ -60,7 +50,7 @@ export function parseSquadList(text: string): ParsedSquadList {
       return
     }
     const [, digits = '', rawName = ''] = match
-    const name = normaliseName(rawName)
+    const name = tidyName(rawName)
     if (!LETTER.test(name)) {
       fail('there is no player name after the number')
       return

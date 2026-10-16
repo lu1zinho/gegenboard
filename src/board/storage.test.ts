@@ -182,7 +182,7 @@ describe('storing named boards', () => {
   it('loads the boards it stored', () => {
     const storage = fakeStorage()
     expect(storeSavedBoards(storage, TWO_BOARDS)).toBe(true)
-    expect(loadSavedBoards(storage)).toEqual({ boards: TWO_BOARDS, problem: null })
+    expect(loadSavedBoards(storage)).toEqual({ items: TWO_BOARDS, problem: null })
   })
 
   it('stores under its own key only, with the list and board schema versions', () => {
@@ -202,27 +202,27 @@ describe('storing named boards', () => {
     const storage = fakeStorage()
     storeSavedBoards(storage, TWO_BOARDS)
     storeSavedBoards(storage, [CHANGED])
-    expect(loadSavedBoards(storage).boards).toEqual([CHANGED])
+    expect(loadSavedBoards(storage).items).toEqual([CHANGED])
     storeSavedBoards(storage, [])
-    expect(loadSavedBoards(storage)).toEqual({ boards: [], problem: null })
+    expect(loadSavedBoards(storage)).toEqual({ items: [], problem: null })
   })
 
   it("works with the browser's localStorage", () => {
     expect(storeSavedBoards(getLocalStorage(), TWO_BOARDS)).toBe(true)
     expect(localStorage.getItem(SAVED_BOARDS_STORAGE_KEY)).toBe(serialiseSavedBoards(TWO_BOARDS))
-    expect(loadSavedBoards(getLocalStorage())).toEqual({ boards: TWO_BOARDS, problem: null })
+    expect(loadSavedBoards(getLocalStorage())).toEqual({ items: TWO_BOARDS, problem: null })
   })
 
   it('loads no boards, without a problem, when none were stored', () => {
-    expect(loadSavedBoards(fakeStorage())).toEqual({ boards: [], problem: null })
+    expect(loadSavedBoards(fakeStorage())).toEqual({ items: [], problem: null })
   })
 
   it('reports blocked storage instead of throwing', () => {
     expect(loadSavedBoards(brokenStorage())).toEqual({
-      boards: [],
+      items: [],
       problem: SAVED_BOARDS_UNAVAILABLE,
     })
-    expect(loadSavedBoards(null)).toEqual({ boards: [], problem: SAVED_BOARDS_UNAVAILABLE })
+    expect(loadSavedBoards(null)).toEqual({ items: [], problem: SAVED_BOARDS_UNAVAILABLE })
   })
 
   it('reports a failed store, e.g. full storage, instead of throwing', () => {
@@ -238,14 +238,14 @@ describe('deserialiseSavedBoards', () => {
 
   it('reads what serialiseSavedBoards wrote', () => {
     expect(deserialiseSavedBoards(serialiseSavedBoards([KICK_OFF]))).toEqual({
-      boards: [KICK_OFF],
+      items: [KICK_OFF],
       problem: null,
     })
   })
 
   it('reports data that is not JSON', () => {
     expect(deserialiseSavedBoards('{"version":1,')).toEqual({
-      boards: [],
+      items: [],
       problem: "Saved boards are damaged and couldn't be read",
     })
   })
@@ -254,7 +254,7 @@ describe('deserialiseSavedBoards', () => {
     'reports data in an unknown format: %s',
     (json) => {
       expect(deserialiseSavedBoards(json)).toEqual({
-        boards: [],
+        items: [],
         problem: "Saved boards are in an unknown format and couldn't be read",
       })
     },
@@ -262,7 +262,7 @@ describe('deserialiseSavedBoards', () => {
 
   it('reports a list from a newer schema version without reading it', () => {
     expect(deserialiseSavedBoards(stored([KICK_OFF], 2))).toEqual({
-      boards: [],
+      items: [],
       problem: "Saved boards use format version 2, which this version of Gegenboard can't read",
     })
   })
@@ -279,7 +279,7 @@ describe('deserialiseSavedBoards', () => {
       'board-8',
     ])
     expect(deserialiseSavedBoards(json)).toEqual({
-      boards: [KICK_OFF],
+      items: [KICK_OFF],
       problem: "Skipped 7 saved boards that couldn't be read",
     })
   })
@@ -291,14 +291,14 @@ describe('deserialiseSavedBoards', () => {
       { ...KICK_OFF, id: 'board-3', name: 'KICK-OFF' },
     ])
     expect(deserialiseSavedBoards(json)).toEqual({
-      boards: [KICK_OFF],
+      items: [KICK_OFF],
       problem: "Skipped 2 saved boards that couldn't be read",
     })
   })
 
   it('tidies names and drops properties the model does not have', () => {
     const json = stored([{ ...KICK_OFF, name: ' Kick-off ', thumbnail: 'pitch.png' }])
-    expect(deserialiseSavedBoards(json)).toEqual({ boards: [KICK_OFF], problem: null })
+    expect(deserialiseSavedBoards(json)).toEqual({ items: [KICK_OFF], problem: null })
   })
 
   it('says when a single board was skipped', () => {

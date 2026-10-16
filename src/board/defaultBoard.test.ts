@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getPlayer } from '../test/board'
 import { createDefaultBoard } from './defaultBoard'
+import { applyFormation, formationOf } from './formations'
 import { TEAM_SIDES } from './types'
 
 describe('createDefaultBoard', () => {
@@ -25,6 +26,14 @@ describe('createDefaultBoard', () => {
     const { home, away } = createDefaultBoard().teams
     expect(home.name).not.toBe(away.name)
     expect(home.colours.primary).not.toBe(away.colours.primary)
+  })
+
+  it('lines each team up as its formation preset, so picking that formation moves nobody', () => {
+    const board = createDefaultBoard()
+    expect(formationOf(board, 'home')).toBe('4-3-3')
+    expect(formationOf(board, 'away')).toBe('4-4-2')
+    expect(applyFormation(board, 'home', '4-3-3')).toEqual(board)
+    expect(applyFormation(board, 'away', '4-4-2')).toEqual(board)
   })
 
   it('keeps each team in its own half for kick-off', () => {

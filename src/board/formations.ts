@@ -5,6 +5,10 @@ export const FORMATION_IDS = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1'] as const
 
 export type FormationId = (typeof FORMATION_IDS)[number]
 
+export function isFormationId(value: string): value is FormationId {
+  return FORMATION_IDS.some((id) => id === value)
+}
+
 /**
  * Goalkeeper first, then the outfield lines from defence to attack, each line from the
  * bottom touchline to the top. Positions are for a team attacking left to right; use

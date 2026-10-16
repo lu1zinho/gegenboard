@@ -3,11 +3,19 @@ import { TEAM_SIDES, type Board, type PitchPosition } from './types'
 
 export const PLAYERS_PER_TEAM = 11
 
+export const MIN_SHIRT_NUMBER = 1
+export const MAX_SHIRT_NUMBER = 99
+
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i
 
 /** Whether a colour is written as `#rrggbb`, the only form the model uses. */
 export function isHexColour(colour: string): boolean {
   return HEX_COLOUR.test(colour)
+}
+
+/** Whether a shirt number is a whole number from 1 to 99, for board teams and rosters alike. */
+export function isShirtNumber(value: number): boolean {
+  return Number.isInteger(value) && value >= MIN_SHIRT_NUMBER && value <= MAX_SHIRT_NUMBER
 }
 
 /**
@@ -39,8 +47,10 @@ export function validateBoard(board: Board): string[] {
       if (playerIds.has(player.id)) problems.push(`${label} has a duplicate id`)
       playerIds.add(player.id)
 
-      if (!Number.isInteger(player.number) || player.number < 1 || player.number > 99) {
-        problems.push(`${label} shirt number must be a whole number from 1 to 99`)
+      if (!isShirtNumber(player.number)) {
+        problems.push(
+          `${label} shirt number must be a whole number from ${MIN_SHIRT_NUMBER} to ${MAX_SHIRT_NUMBER}`,
+        )
       } else if (numbers.has(player.number)) {
         problems.push(`${label} has duplicate shirt number ${player.number}`)
       }
