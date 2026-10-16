@@ -4,7 +4,6 @@ import './Pitch.css'
 import { PitchMarkings } from './PitchMarkings'
 
 // Sizes in metres, the SVG's user units.
-const MARGIN = 4
 const PLAYER_RADIUS = 1.8
 const BALL_RADIUS = 0.9
 const ARROW_WIDTH = 0.45
@@ -19,9 +18,9 @@ export function Pitch({ board }: { board: Board }) {
       className="pitch"
       role="group"
       aria-label="Tactics board"
-      viewBox={`${-MARGIN} ${-MARGIN} ${PITCH_LENGTH + 2 * MARGIN} ${PITCH_WIDTH + 2 * MARGIN}`}
+      viewBox={`0 0 ${PITCH_LENGTH} ${PITCH_WIDTH}`}
     >
-      <PitchMarkings margin={MARGIN} />
+      <PitchMarkings />
       <g role="list" aria-label="Arrows">
         {board.arrows.map((arrow) => (
           <ArrowShape key={arrow.id} arrow={arrow} />

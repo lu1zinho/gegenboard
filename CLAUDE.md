@@ -63,6 +63,8 @@ src/
     squadList.ts       parseSquadList(): pasted "10 Name" lines to players and line errors
     roster.ts          create, edit and validate rosters (validateRoster)
     storage.ts         save and load rosters in localStorage
+  stream/              stream view options: parseStreamOptions() (?bg=transparent) and the
+                       usePresentationMode() hook (P key)
   components/          React components (Pitch renders a Board as SVG; RosterPanel manages
                        rosters; BoardsPanel manages named boards)
   test/                Vitest setup and shared test helpers
@@ -133,6 +135,18 @@ e2e/                   Playwright specs (*.spec.ts)
   `BOARD_SCHEMA_VERSION` together and convert older boards in `readBoard`. Boards that can't be
   read (damaged, newer, or breaking `validateBoard`) are skipped, never loaded.
 - Go through the functions in `src/board/storage.ts`, which never throw, as for rosters.
+
+## Stream view
+
+- The stage is the largest 16:9 frame that fits the window. The pitch (viewBox 105×68, no
+  margin) fills the frame's full height and is centred; the spare width on each side holds a
+  `Bench` (substitutes list, empty for now). Layout is plain CSS, so the pitch proportions hold at
+  any window size and nothing scrolls.
+- `P` toggles presentation mode, which hides every control (the `.controls` wrapper in `App`,
+  kept mounted so panel state survives). New controls go inside that wrapper. `P` is ignored
+  while typing in a field.
+- `?bg=transparent` sets `data-bg="transparent"` on `<html>` so OBS shows what is behind the
+  page.
 
 ## Conventions
 

@@ -1,0 +1,19 @@
+.bench {
+  min-width: 0;
+  padding: 2cqh 1.5cqw;
+  font-size: 2cqh;
+}
+
+.bench-title {
+  margin: 0 0 1em;
+  padding-bottom: 0.4em;
+  border-bottom: 0.2em solid;
+  font-size: 1.1em;
+  overflow-wrap: anywhere;
+}
+
+.bench-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

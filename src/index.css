@@ -26,6 +26,16 @@ body,
   height: 100%;
 }
 
+html {
+  overflow: hidden;
+}
+
+/* ?bg=transparent: let OBS show what is behind the browser source. */
+html[data-bg='transparent'],
+html[data-bg='transparent'] body {
+  background: transparent;
+}
+
 button,
 input,
 textarea {

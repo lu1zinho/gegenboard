@@ -18,18 +18,12 @@ const STRIPES = 12
 const MID_X = PITCH_LENGTH / 2
 const MID_Y = PITCH_WIDTH / 2
 
-/** Grass and white lines for a pitch drawn in metres, with `margin` metres of grass around it. */
-export function PitchMarkings({ margin }: { margin: number }) {
+/** Grass and white lines for a pitch drawn in metres, from (0, 0) to the far corner. */
+export function PitchMarkings() {
   const stripeWidth = PITCH_LENGTH / STRIPES
   return (
     <g aria-hidden="true">
-      <rect
-        className="pitch-grass"
-        x={-margin}
-        y={-margin}
-        width={PITCH_LENGTH + 2 * margin}
-        height={PITCH_WIDTH + 2 * margin}
-      />
+      <rect className="pitch-grass" width={PITCH_LENGTH} height={PITCH_WIDTH} />
       {Array.from({ length: STRIPES / 2 }, (_, i) => (
         <rect
           key={i}
