@@ -1,3 +1,4 @@
+import { isRecord, type KeyValueStorage } from '../storage'
 import { validateRoster } from './roster'
 import type { Roster, RosterPlayer } from './types'
 
@@ -12,8 +13,7 @@ export interface StoredRosters {
   rosters: Roster[]
 }
 
-/** The part of the Web Storage API rosters need, so tests can pass a fake. */
-export type RosterStorage = Pick<Storage, 'getItem' | 'setItem'>
+export type RosterStorage = KeyValueStorage
 
 export interface LoadedRosters {
   rosters: Roster[]
@@ -94,19 +94,6 @@ export function saveRosters(storage: RosterStorage | null, rosters: readonly Ros
   } catch {
     return false
   }
-}
-
-/** The browser's localStorage, or `null` where merely accessing it throws. */
-export function getLocalStorage(): Storage | null {
-  try {
-    return window.localStorage
-  } catch {
-    return null
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** A valid roster rebuilt from stored data, without unknown properties, or `null`. */
