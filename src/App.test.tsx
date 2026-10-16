@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
@@ -54,5 +54,24 @@ describe('App', () => {
 
     await user.click(toggle)
     expect(screen.getByRole('textbox', { name: 'Team name' })).toHaveValue('Gegenpress FC')
+  })
+})
+
+describe('formations', () => {
+  it('moves a team to the chosen formation and keeps its players', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const homePlayers = screen.getByRole('list', { name: 'Home players' })
+    const before = within(homePlayers)
+      .getAllByRole('listitem')
+      .map((item) => item.getAttribute('transform'))
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Home formation' }), '4-2-3-1')
+
+    const after = within(homePlayers).getAllByRole('listitem')
+    expect(after.map((item) => item.getAttribute('transform'))).not.toEqual(before)
+    expect(after.map((item) => item.getAttribute('aria-label'))).toContain('9 Okafor')
+    expect(screen.getByRole('combobox', { name: 'Home formation' })).toHaveValue('4-2-3-1')
+    expect(screen.getByRole('combobox', { name: 'Away formation' })).toHaveValue('4-4-2')
   })
 })
