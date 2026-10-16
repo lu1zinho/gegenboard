@@ -58,6 +58,26 @@ test('keeps the pitch proportions in a window of another shape', async ({ page }
   expect(await scrollSize(page)).toEqual({ width: 1600, height: 1200 })
 })
 
+/** Everything that can be clicked or typed in. */
+const FORM_CONTROLS = 'button, input, select, textarea'
+
+interface Box {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+async function boxOf(locator: Locator): Promise<Box> {
+  const box = await locator.boundingBox()
+  if (!box) throw new Error(`${locator.toString()} is not visible`)
+  return box
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+}
+
 test('P hides every control and shows them again', async ({ page }) => {
   await page.goto('/')
   const rosters = page.getByRole('button', { name: 'Rosters' })
@@ -81,26 +101,6 @@ test('P hides every control and shows them again', async ({ page }) => {
   await expect(page.getByRole('complementary', { name: 'Rosters' })).toBeVisible()
 })
 
-/** Everything that can be clicked or typed in. */
-const FORM_CONTROLS = 'button, input, select, textarea'
-
-interface Box {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-async function boxOf(locator: Locator): Promise<Box> {
-  const box = await locator.boundingBox()
-  if (!box) throw new Error(`${locator.toString()} is not visible`)
-  return box
-}
-
-function overlaps(a: Box, b: Box): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
-}
-
 for (const viewport of [
   { width: 1920, height: 1080 },
   { width: 1280, height: 720 },
@@ -114,8 +114,8 @@ for (const viewport of [
 
     const pitch = await boxOf(page.getByRole('group', { name: 'Tactics board' }))
     const titles = [
-      await boxOf(page.getByRole('heading', { name: 'Home' })),
-      await boxOf(page.getByRole('heading', { name: 'Away' })),
+      await boxOf(page.getByRole('heading', { name: 'Home', exact: true })),
+      await boxOf(page.getByRole('heading', { name: 'Away', exact: true })),
     ]
     const controls = await page.locator(FORM_CONTROLS).filter({ visible: true }).all()
     // Rosters, Boards and a formation picker per team.

@@ -43,32 +43,38 @@ Before pushing, run what CI runs:
 
 ```
 src/
-  main.tsx, App.tsx    entry point; App holds the board history and shows the board in a
-                       16:9 stage
-  storage.ts           getLocalStorage() and helpers shared by everything kept in storage
+  main.tsx, App.tsx    entry point; App holds the board history, the presentation and panel
+                       state, and lays out the 16:9 stage
+  storage.ts           every localStorage access: getLocalStorage, readItem/writeItem and
+                       versioned lists (StoredList: loadList, storeList, deserialiseList)
+  text.ts              tidyName, countOf, SIDE_LABELS: text helpers for model and UI
+  ids.ts               nextId(): `p3` after `p1` and `p2`, for every list with numbered ids
   board/               the board data model: pure TypeScript, no React
     types.ts           Board, Team, Player, Ball, Arrow, PitchPosition
     pitch.ts           pitch dimensions, position helpers, clampPosition, fromScreenPoint
     moveToken.ts       moveToken(): move a player or the ball, clamped to the pitch
     defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
-    validate.ts        validateBoard(): invariants the types can't express
+    validate.ts        validateBoard(), isShirtNumber, isHexColour: invariants the types
+                       can't express, shared with rosters
     formations.ts      formation presets: applyFormation(), formationOf()
     savedBoards.ts     save, rename and delete named boards (SavedBoard)
     storage.ts         readBoard(), autosave and named boards in localStorage
   history/             generic undo/redo
     history.ts         History<T>: past, present and future states; pure, no React
     useHistory.ts      useHistory(): a value with change, undo and redo
-    useHistoryShortcuts.ts  Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y
+  shortcuts/           every keyboard shortcut
+    shortcuts.ts       shortcutFor(): which action a key press asks for; pure
+    useShortcuts.ts    useShortcuts(): the app's only keydown listener
   roster/              team rosters: pure TypeScript, no React
     types.ts           Roster, RosterPlayer, SquadEntry
     squadList.ts       parseSquadList(): pasted "10 Name" lines to players and line errors
     roster.ts          create, edit and validate rosters (validateRoster)
-    storage.ts         save and load rosters in localStorage
-  stream/              stream view options: parseStreamOptions() (?bg=transparent) and the
-                       usePresentationMode() hook (P key)
-  components/          React components (Pitch renders a Board as SVG; RosterPanel manages
-                       rosters; BoardsPanel manages named boards)
-  test/                Vitest setup and shared test helpers
+    storage.ts         store and load rosters in localStorage
+  stream/              stream view options: parseStreamOptions() (?bg=transparent)
+  components/          React components: Pitch renders a Board as SVG; Bench; FormationPicker;
+                       Panel is the side panel that RosterPanel (rosters) and BoardsPanel
+                       (named boards) are built on
+  test/                Vitest setup and shared test helpers (fakeStorage, getPlayer, makeRoster…)
 e2e/                   Playwright specs (*.spec.ts)
 ```
 
@@ -83,10 +89,13 @@ e2e/                   Playwright specs (*.spec.ts)
   rendering (`toPitchPoint` gives metres, which the SVG uses as user units).
 - `home` defends the left goal and attacks right; `away` is the reverse. Write formations for
   a team attacking right and use `mirrorPosition` for the away side.
-- Teams have exactly 11 players; shirt numbers are 1–99 and unique within a team; ids are
-  unique across the board; colours are `#rrggbb`. `validateBoard` checks all of this. Keep it
-  in step with any model change, and `readBoard` too: it rebuilds stored boards field by field,
-  so a field it doesn't know is dropped on load.
+- Teams have exactly 11 players; shirt numbers are 1–99 (`isShirtNumber`) and unique within a
+  team; ids are unique across the board; colours are `#rrggbb`. `validateBoard` checks all of
+  this. Keep it in step with any model change, and `readBoard` too: it rebuilds stored boards
+  field by field, so a field it doesn't know is dropped on load.
+- Formation coordinates live only in `formations.ts`; the default board is built by applying
+  the presets (home 4-3-3, away 4-4-2), so re-picking a team's formation moves nobody. List a
+  lineup in formation order: goalkeeper, then each line from the bottom touchline to the top.
 - Model code is pure functions over plain data. Treat boards as immutable in app code and
   return new objects rather than mutating (tests may mutate fresh boards to set up cases).
 
@@ -96,15 +105,28 @@ e2e/                   Playwright specs (*.spec.ts)
   number of players with a shirt number (1–99, unique) and a name, but no positions. Rosters
   aren't wired into the board yet; picking a board team from a roster is a later step.
 - Rosters follow the board's rules: plain JSON-serialisable data, pure functions returning new
-  objects, and `validateRoster` kept in step with any model change.
+  objects, and `validateRoster` kept in step with any model change. They share the shirt number
+  and colour rules (`isShirtNumber`, `isHexColour` in `board/validate.ts`), `tidyName` and
+  `nextId` with boards rather than keeping their own.
 - `parseSquadList` never throws: unreadable lines and repeated shirt numbers come back as
   `errors` with a line number and reason, and the readable lines are still used.
 - Rosters are stored in localStorage under `gegenboard.rosters` as `{ version, rosters }`,
   apart from anything else the app saves. Bump `ROSTERS_SCHEMA_VERSION` on breaking changes
-  and migrate older data in `deserialiseRosters`. Go through `loadRosters`/`saveRosters`/
-  `getLocalStorage` (in `src/storage.ts`), which wrap every storage access in try/catch and
-  never throw, rather than using `localStorage` directly in app code. Unit tests get a cleared
-  `localStorage` after each test.
+  and migrate older data where `deserialiseList` checks the version. Go through
+  `loadRosters`/`storeRosters` with `getLocalStorage()`, which never throw, rather than using
+  `localStorage` directly.
+
+## Storage
+
+- Every storage access goes through `src/storage.ts`: `readItem`/`writeItem` for a single
+  value, and `loadList`/`storeList` for a list kept as `{ version, [field]: items }`. They
+  wrap storage in try/catch and never throw; loading a list reports why items were skipped as
+  `problem` (shown in the panel's status line).
+- A new kind of stored list is a `StoredList<T>` (key, version, field, noun and a `readItem`
+  that rebuilds and checks one item) plus thin `load…`/`store…` wrappers, as in
+  `roster/storage.ts` and `board/storage.ts`. Don't write another try/catch around storage.
+- Tests use `fakeStorage()` and `brokenStorage()` from `src/test/storage.ts`. Unit tests get a
+  cleared `localStorage` after each test.
 
 ## Undo and redo
 
@@ -120,8 +142,7 @@ e2e/                   Playwright specs (*.spec.ts)
 - For gestures that change the board many times, such as a drag or typing in a field, pass
   the same `group` to each change (`board.change(update, { group: 'drag-3' })`) so the gesture
   undoes in one step. Use a new group per gesture; undo and redo end a group.
-- Ctrl+Z undoes; Ctrl+Shift+Z and Ctrl+Y redo (⌘ for Ctrl on a Mac). Inside text fields the
-  shortcuts are left to the field, so they undo typing as usual.
+- Ctrl+Z undoes; Ctrl+Shift+Z and Ctrl+Y redo (see Keyboard shortcuts).
 - `History<T>` and `useHistory` are generic: use them for other undoable state too.
 
 ## Saved boards
@@ -137,15 +158,38 @@ e2e/                   Playwright specs (*.spec.ts)
   read (damaged, newer, or breaking `validateBoard`) are skipped, never loaded.
 - Go through the functions in `src/board/storage.ts`, which never throw, as for rosters.
 
+## Keyboard shortcuts
+
+All shortcuts are matched by `shortcutFor` in `src/shortcuts/shortcuts.ts` and handled by the
+one `useShortcuts` call in `App`. Add new ones there (and to this table), never with another
+`keydown` listener, so they can't clash.
+
+| Keys                   | Action                   | Ignored while focus is in                     |
+| ---------------------- | ------------------------ | --------------------------------------------- |
+| Ctrl+Z                 | undo                     | a text field (it has its own undo)            |
+| Ctrl+Shift+Z or Ctrl+Y | redo                     | a text field                                  |
+| P                      | toggle presentation mode | a text field or a select (they take letters)  |
+| Escape                 | close the open panel     | nothing, but it does nothing while presenting |
+
+- ⌘ works for Ctrl on a Mac. Letters follow the keyboard layout, falling back to the QWERTY
+  position on layouts without Latin letters.
+- A key press another handler already took (`event.preventDefault()`) is ignored, so a field
+  can keep a key for itself: Escape in the rename form cancels the rename, not the panel.
+
 ## Stream view
 
 - The stage is the largest 16:9 frame that fits the window. The pitch (viewBox 105×68, no
   margin) fills the frame's full height and is centred; the spare width on each side holds a
-  `Bench` (substitutes list, empty for now). Layout is plain CSS, so the pitch proportions hold at
-  any window size and nothing scrolls.
-- `P` toggles presentation mode, which hides every control (the `.controls` wrapper in `App`,
-  kept mounted so panel state survives). New controls go inside that wrapper. `P` is ignored
-  while typing in a field.
+  `Bench` (substitutes list, empty for now) with that side's controls in a row below it:
+  Rosters, Boards and the home formation on the left, the away formation on the right. The
+  layout is a CSS grid (`grid-template-areas` in `App.css`), so the pitch proportions hold at
+  any window size, no control covers the pitch or a bench title, and nothing scrolls.
+- `P` toggles presentation mode, which hides every control: the `.controls` wrapper in `App`
+  (`display: contents`, kept mounted so panel state survives). New controls go inside that
+  wrapper, in a `.side-controls` row or as a `Panel`. With the controls hidden the rows below
+  the benches collapse and the benches take the full height.
+- Panels (`Panel`) cover the right of the stage, one at a time; Escape or Close closes them and
+  gives the focus back to their toggle button.
 - `?bg=transparent` sets `data-bg="transparent"` on `<html>` so OBS shows what is behind the
   page.
 
@@ -174,6 +218,7 @@ e2e/                   Playwright specs (*.spec.ts)
   not by CSS class or test id. Give SVG elements roles/labels so they are queryable.
 - End-to-end specs live in `e2e/` and cover what only a real browser can check (layout,
   sizing, the built app actually loading). Don't use screenshot comparisons: local and CI
-  browsers differ.
+  browsers differ; check boxes instead (`e2e/app.spec.ts` checks no control overlaps the pitch
+  or bench titles at several window sizes).
 - No backend, no network calls, no runtime dependencies beyond React without a good reason.
 - Commits are small and focused, with an imperative subject line.
