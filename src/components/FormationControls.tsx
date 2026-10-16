@@ -8,11 +8,12 @@ function isFormationId(value: string): value is FormationId {
 }
 
 interface FormationControlsProps {
-  formations: Record<TeamSide, FormationId>
+  /** Each team's formation, or `null` for a team that isn't lined up in one. */
+  formations: Record<TeamSide, FormationId | null>
   onChange: (side: TeamSide, formation: FormationId) => void
 }
 
-/** One formation picker per team. */
+/** One formation picker per team. A team in no formation shows Custom, which can't be picked. */
 export function FormationControls({ formations, onChange }: FormationControlsProps) {
   return (
     <div className="formation-controls" role="group" aria-label="Formations">
@@ -20,12 +21,17 @@ export function FormationControls({ formations, onChange }: FormationControlsPro
         <label key={side}>
           {SIDE_LABELS[side]} formation
           <select
-            value={formations[side]}
+            value={formations[side] ?? ''}
             onChange={(event) => {
               const { value } = event.target
               if (isFormationId(value)) onChange(side, value)
             }}
           >
+            {formations[side] === null && (
+              <option value="" disabled>
+                Custom
+              </option>
+            )}
             {FORMATION_IDS.map((id) => (
               <option key={id} value={id}>
                 {id}

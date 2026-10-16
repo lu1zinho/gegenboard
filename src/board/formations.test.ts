@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { getPlayer } from '../test/board'
 import { createDefaultBoard } from './defaultBoard'
-import { FORMATION_IDS, applyFormation, formationPositions } from './formations'
+import { FORMATION_IDS, applyFormation, formationOf, formationPositions } from './formations'
 import { isOnPitch, mirrorPosition } from './pitch'
+import { deserialiseBoard } from './storage'
 import { TEAM_SIDES } from './types'
 import { validateBoard } from './validate'
 
@@ -110,5 +111,49 @@ describe('applyFormation', () => {
     const before = createDefaultBoard()
     const after = applyFormation(before, 'home', '4-2-3-1')
     expect(after.teams.home.players).not.toEqual(before.teams.home.players)
+  })
+})
+
+describe('formationOf', () => {
+  it('reads the formations the default board lines up in', () => {
+    const board = createDefaultBoard()
+    expect(formationOf(board, 'home')).toBe('4-3-3')
+    expect(formationOf(board, 'away')).toBe('4-4-2')
+  })
+
+  it.each(FORMATION_IDS)('reads %s back after applying it to either side', (id) => {
+    for (const side of TEAM_SIDES) {
+      const board = applyFormation(createDefaultBoard(), side, id)
+      expect(formationOf(board, side)).toBe(id)
+    }
+  })
+
+  it('reads a formation from a board saved and restored as JSON', () => {
+    const restored = deserialiseBoard(
+      JSON.stringify(applyFormation(createDefaultBoard(), 'away', '3-5-2')),
+    )
+    if (!restored) throw new Error('The board could not be restored')
+    expect(formationOf(restored, 'away')).toBe('3-5-2')
+  })
+
+  it('returns null once a player leaves the formation', () => {
+    const board = createDefaultBoard()
+    getPlayer(board, 'home', 9).position = { x: 80, y: 50 }
+    expect(formationOf(board, 'home')).toBeNull()
+    expect(formationOf(board, 'away')).toBe('4-4-2')
+  })
+
+  it('reads the formation whichever player stands on which spot', () => {
+    const board = createDefaultBoard()
+    const [keeper, rightBack] = board.teams.home.players
+    if (!keeper || !rightBack) throw new Error('Expected a full team')
+    ;[keeper.position, rightBack.position] = [rightBack.position, keeper.position]
+    expect(formationOf(board, 'home')).toBe('4-3-3')
+  })
+
+  it('returns null when two players share a spot of the formation', () => {
+    const board = createDefaultBoard()
+    getPlayer(board, 'home', 9).position = { ...getPlayer(board, 'home', 11).position }
+    expect(formationOf(board, 'home')).toBeNull()
   })
 })

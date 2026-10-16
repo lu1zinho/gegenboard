@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { getLocalStorage } from '../storage'
 import { makeRoster } from '../test/roster'
 import {
   ROSTERS_SCHEMA_VERSION,
   ROSTERS_STORAGE_KEY,
   STORAGE_UNAVAILABLE,
   deserialiseRosters,
-  getLocalStorage,
   loadRosters,
   saveRosters,
   serialiseRosters,
@@ -38,10 +38,6 @@ function brokenStorage(): RosterStorage {
 }
 
 const TWO_ROSTERS = [makeRoster(), makeRoster({ id: 'roster-2', name: 'Rondo United' })]
-
-afterEach(() => {
-  vi.restoreAllMocks()
-})
 
 describe('saving and loading rosters', () => {
   it('loads the rosters it saved', () => {
@@ -95,19 +91,6 @@ describe('saving and loading rosters', () => {
   it('reports a failed save, e.g. full storage, instead of throwing', () => {
     expect(saveRosters(brokenStorage(), TWO_ROSTERS)).toBe(false)
     expect(saveRosters(null, TWO_ROSTERS)).toBe(false)
-  })
-})
-
-describe('getLocalStorage', () => {
-  it("returns the browser's localStorage", () => {
-    expect(getLocalStorage()).toBe(window.localStorage)
-  })
-
-  it('returns null where accessing localStorage throws', () => {
-    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
-      throw new DOMException('Access denied', 'SecurityError')
-    })
-    expect(getLocalStorage()).toBeNull()
   })
 })
 

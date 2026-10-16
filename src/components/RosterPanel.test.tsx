@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getLocalStorage, loadRosters, saveRosters } from '../roster/storage'
+import { loadRosters, saveRosters } from '../roster/storage'
+import { getLocalStorage } from '../storage'
 import { makeRoster } from '../test/roster'
 import { RosterPanel } from './RosterPanel'
 

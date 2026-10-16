@@ -31,11 +31,16 @@
   display: none;
 }
 
-/* Kept small and faint in the corner so it barely shows on stream. */
-.panel-toggle {
+/* Kept small and faint in the corner so they barely show on stream. */
+.panel-toggles {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.panel-toggle {
   opacity: 0.6;
 }
 

@@ -93,3 +93,17 @@ export function applyFormation(board: Board, side: TeamSide, id: FormationId): B
     },
   }
 }
+
+/**
+ * The formation the team is lined up in: the one whose spots its players stand on exactly,
+ * whichever player is on which spot. `null` if they stand anywhere else.
+ */
+export function formationOf(board: Board, side: TeamSide): FormationId | null {
+  const spots = (positions: readonly PitchPosition[]) =>
+    positions
+      .map(({ x, y }) => `${x},${y}`)
+      .sort()
+      .join(' ')
+  const lineup = spots(board.teams[side].players.map((player) => player.position))
+  return FORMATION_IDS.find((id) => spots(formationPositions(id, side)) === lineup) ?? null
+}
