@@ -257,3 +257,69 @@ describe('App saved boards and undo', () => {
     expect(strikerTransform()).toBe(LOW)
   })
 })
+
+describe('formations', () => {
+  it('moves a team to the chosen formation and keeps its players', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const homePlayers = screen.getByRole('list', { name: 'Home players' })
+    const before = within(homePlayers)
+      .getAllByRole('listitem')
+      .map((item) => item.getAttribute('transform'))
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Home formation' }), '4-2-3-1')
+
+    const after = within(homePlayers).getAllByRole('listitem')
+    expect(after.map((item) => item.getAttribute('transform'))).not.toEqual(before)
+    expect(after.map((item) => item.getAttribute('aria-label'))).toContain('9 Okafor')
+    expect(screen.getByRole('combobox', { name: 'Home formation' })).toHaveValue('4-2-3-1')
+    expect(screen.getByRole('combobox', { name: 'Away formation' })).toHaveValue('4-4-2')
+  })
+})
+
+describe('formations and undo', () => {
+  function picker(side: 'Home' | 'Away') {
+    return screen.getByRole('combobox', { name: `${side} formation` })
+  }
+
+  it('undoes and redoes a formation change, and the picker follows', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.selectOptions(picker('Home'), '3-5-2')
+    expect(picker('Home')).toHaveValue('3-5-2')
+    const in352 = strikerTransform()
+    expect(in352).not.toBe(AT_KICK_OFF)
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(picker('Home')).toHaveValue('4-3-3')
+    expect(strikerTransform()).toBe(AT_KICK_OFF)
+
+    await user.keyboard('{Control>}y{/Control}')
+    expect(picker('Home')).toHaveValue('3-5-2')
+    expect(strikerTransform()).toBe(in352)
+  })
+
+  it('autosaves a formation change and restores it with the picker', async () => {
+    const user = userEvent.setup()
+    const view = render(<App />)
+    await user.selectOptions(picker('Away'), '4-2-3-1')
+    view.unmount()
+
+    render(<App />)
+    expect(picker('Away')).toHaveValue('4-2-3-1')
+    expect(picker('Home')).toHaveValue('4-3-3')
+  })
+
+  it('shows Custom for a team that is in no formation', async () => {
+    const { load } = await renderWithSavedBoards()
+    await load(HIGH_PRESS)
+
+    expect(picker('Home')).toHaveValue('')
+    expect(within(picker('Home')).getByRole('option', { selected: true })).toHaveTextContent(
+      'Custom',
+    )
+    expect(picker('Away')).toHaveValue('4-4-2')
+    expect(within(picker('Away')).queryByRole('option', { name: 'Custom' })).toBeNull()
+  })
+})

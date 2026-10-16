@@ -51,6 +51,7 @@ src/
     pitch.ts           pitch dimensions and position helpers
     defaultBoard.ts    createDefaultBoard(): both teams lined up for kick-off
     validate.ts        validateBoard(): invariants the types can't express
+    formations.ts      formation presets: applyFormation(), formationOf()
     savedBoards.ts     save, rename and delete named boards (SavedBoard)
     storage.ts         readBoard(), autosave and named boards in localStorage
   history/             generic undo/redo
@@ -109,6 +110,9 @@ e2e/                   Playwright specs (*.spec.ts)
   `update` that takes the present board and returns a new one (or the same object to change
   nothing). Then the change can be undone and redone and is autosaved, with no extra work.
   Never keep a copy of the board in other state.
+- Controls that show something about the board read it from `board.present` instead of keeping
+  their own state, so they follow undo, reloads and loaded boards. The formation pickers, for
+  example, show `formationOf(board, side)`, or Custom when a team is in no formation.
 - A new change clears redo. At most `HISTORY_LIMIT` (100) undo steps are kept.
 - For gestures that change the board many times, such as a drag or typing in a field, pass
   the same `group` to each change (`board.change(update, { group: 'drag-3' })`) so the gesture

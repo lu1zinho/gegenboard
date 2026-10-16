@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import './App.css'
 import { createDefaultBoard } from './board/defaultBoard'
+import { applyFormation, formationOf } from './board/formations'
 import { autosaveBoard, loadAutosavedBoard } from './board/storage'
 import type { Board } from './board/types'
 import { BoardsPanel } from './components/BoardsPanel'
+import { FormationControls } from './components/FormationControls'
 import { Pitch } from './components/Pitch'
 import { RosterPanel } from './components/RosterPanel'
 import { useHistory } from './history/useHistory'
@@ -45,6 +47,15 @@ export default function App() {
       <div className="stage">
         <Pitch board={board.present} />
       </div>
+      <FormationControls
+        formations={{
+          home: formationOf(board.present, 'home'),
+          away: formationOf(board.present, 'away'),
+        }}
+        onChange={(side, formation) => {
+          board.change((current) => applyFormation(current, side, formation))
+        }}
+      />
       <div className="panel-toggles">
         <button
           ref={rostersButton}
